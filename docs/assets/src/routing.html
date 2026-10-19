@@ -1,0 +1,99 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="brand.css">
+<style>
+  body { background: radial-gradient(900px 500px at 30% 0%, rgba(244,180,67,0.07), transparent 70%), var(--ink); }
+  .box { position: absolute; border-radius: 16px; background: var(--ink-2); border: 1px solid var(--ink-3); }
+  .finding { left: 40px; top: 196px; width: 220px; height: 188px; padding: 22px; }
+  .finding b { font-size: 21px; font-weight: 700; }
+  .finding p { margin-top: 8px; font-size: 14.5px; line-height: 1.45; color: var(--mist); }
+  .chips { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(242,131,111,0.12); color: var(--ember); }
+
+  .q { left: 310px; width: 370px; height: 92px; padding: 0 22px; display: flex; flex-direction: column; justify-content: center; }
+  .q b { font-size: 17px; font-weight: 600; line-height: 1.35; }
+  .q span { margin-top: 4px; font-size: 13.5px; color: var(--dim); }
+  .q.last { border-style: dashed; background: transparent; }
+
+  .out { left: 742px; width: 210px; height: 92px; padding: 0 18px; display: flex; flex-direction: column; justify-content: center; }
+  .out b { font-size: 19px; font-weight: 700; }
+  .out span { margin-top: 4px; font-size: 13px; color: var(--mist); line-height: 1.35; }
+  .hook { border-color: rgba(169,156,245,0.55); } .hook b { color: var(--violet); }
+  .skill { border-color: rgba(242,131,111,0.55); } .skill b { color: var(--ember); }
+  .md { border-color: rgba(244,180,67,0.55); } .md b { color: var(--ore); }
+
+  .gate { left: 1000px; top: 104px; width: 244px; height: 382px; padding: 18px 18px; background: var(--ink-4); }
+  .gate h3 { font-size: 13px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--dim); }
+  .gate p.qq { margin-top: 8px; font-size: 15px; font-weight: 600; line-height: 1.4; }
+  .res { margin-top: 14px; padding: 11px 14px; border-radius: 12px; }
+  .res b { font-size: 15px; font-weight: 700; display: block; }
+  .res span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.4; color: var(--mist); }
+  .res .k { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px; display: block; }
+  .no { background: rgba(111,220,203,0.08); border: 1px solid rgba(111,220,203,0.35); }
+  .no b, .no .k { color: var(--gem); }
+  .yes { background: rgba(118,124,153,0.10); border: 1px solid var(--ink-3); }
+  .yes b { color: var(--cream); } .yes .k { color: var(--dim); }
+
+  .yesl, .nol { position: absolute; font-size: 12.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .yesl { color: var(--gem); } .nol { color: var(--dim); }
+
+  .foot { position: absolute; left: 40px; right: 40px; top: 516px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .foot div { padding: 14px 18px; border-left: 2px solid var(--ore-3); background: rgba(21,24,48,0.7); border-radius: 0 10px 10px 0; font-size: 14px; line-height: 1.5; color: var(--mist); }
+  .foot b { color: var(--cream); font-weight: 600; }
+  svg { position: absolute; inset: 0; }
+</style></head>
+<body>
+  <div class="label" style="left:42px; top:40px">Remedy routing</div>
+
+  <div class="box finding">
+    <b>A finding</b>
+    <p>Signals that share one rule, across sessions and repos.</p>
+    <div class="chips"><span class="chip">corrections</span><span class="chip">interrupts</span><span class="chip">repeats</span><span class="chip">rewinds</span></div>
+  </div>
+
+  <div class="box q" style="top:104px"><b>Can a check on a file path or a shell command enforce it?</b><span>"don't edit package-lock.json", "never force push"</span></div>
+  <div class="box q" style="top:249px"><b>Is it a procedure you keep re-explaining?</b><span>several steps, repeated across sessions</span></div>
+  <div class="box q last" style="top:394px"><b>Otherwise: judgment or style the model must apply</b><span>"table-driven tests, not testify"</span></div>
+
+  <div class="box out hook" style="top:104px"><b>Hook</b><span>PreToolUse script and its settings entry</span></div>
+  <div class="box out skill" style="top:249px"><b>Skill</b><span>a draft SKILL.md with the steps</span></div>
+  <div class="box out md" style="top:394px"><b>CLAUDE.md line</b><span>the repo's file, or the global one</span></div>
+
+  <div class="box gate">
+    <h3>Then, de-duplicate</h3>
+    <p class="qq">Already covered by your CLAUDE.md, hooks or skills, or seen in one session only?</p>
+    <div class="res no"><span class="k">no</span><b>Proposed</b><span>accepting writes a patch you apply</span></div>
+    <div class="res yes"><span class="k">yes</span><b>Ignore</b><span>listed in the appendix with a reason</span></div>
+  </div>
+
+  <span class="yesl" style="left:694px; top:130px">yes</span>
+  <span class="yesl" style="left:694px; top:275px">yes</span>
+  <span class="nol" style="left:504px; top:209px">no</span>
+  <span class="nol" style="left:504px; top:354px">no</span>
+
+  <svg viewBox="0 0 1280 600">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#767c99"/></marker>
+      <marker id="g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6fdccb"/></marker>
+    </defs>
+    <!-- finding into the first question -->
+    <path d="M260 290 C285 290 285 150 306 150" stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)"/>
+    <!-- no: down the questions -->
+    <g stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)">
+      <path d="M495 196 L495 246"/><path d="M495 341 L495 391"/>
+    </g>
+    <!-- yes: across to the remedy -->
+    <g stroke="#6fdccb" stroke-width="2" fill="none" marker-end="url(#g)">
+      <path d="M680 150 L738 150"/><path d="M680 295 L738 295"/>
+    </g>
+    <path d="M680 440 L738 440" stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)"/>
+    <!-- remedies into the gate -->
+    <g stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)">
+      <path d="M952 150 L1000 150"/><path d="M952 295 L1000 295"/><path d="M952 440 L1000 440"/>
+    </g>
+  </svg>
+
+  <div class="foot">
+    <div><b>A hook wins whenever one fits.</b> Deterministic beats instructed: a CLAUDE.md line is a request, a hook is a guarantee.</div>
+    <div><b>Hook blocks become CLAUDE.md lines.</b> The guardrail already exists; the fix is telling Claude the rule so it stops tripping it.</div>
+  </div>
+</body></html>

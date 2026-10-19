@@ -1,0 +1,88 @@
+# The sminer site: the landing page (overrides/home.html) and every page in
+# docs/. Published to GitHub Pages by .github/workflows/pages.yml.
+# Preview locally: pip install -r docs/requirements.txt && mkdocs serve
+site_name: sminer
+site_description: Find the corrections you keep making to Claude, and fix them for good.
+site_url: https://rossedman.io/sminer/
+repo_url: https://github.com/rossedman/sminer
+repo_name: rossedman/sminer
+edit_uri: edit/main/docs/
+
+# Strict builds (CI) fail on broken links and #anchors between pages.
+validation:
+  links:
+    anchors: warn
+
+exclude_docs: |
+  /assets/src/
+  /assets/render.sh
+  /requirements.txt
+
+nav:
+  - Home: index.md
+  - Get started: getting-started.md
+  - Guides:
+      - How it works: how-it-works.md
+      - Signals: signals.md
+      - Findings and remedies: findings.md
+      - Privacy and safety: privacy.md
+  - Reference:
+      - CLI: cli.md
+      - Configuration: configuration.md
+      - Troubleshooting: troubleshooting.md
+  - Project:
+      - Evaluation: evaluation.md
+      - Design and development: design.md
+
+theme:
+  name: material
+  custom_dir: overrides
+  logo: assets/site/logo.svg
+  favicon: assets/site/logo.svg
+  palette:
+    scheme: slate
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil-outline
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra_css:
+  - assets/site/landing.css
+  - assets/site/docs.css
+extra_javascript:
+  - assets/site/landing.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rossedman/sminer
+  generator: false

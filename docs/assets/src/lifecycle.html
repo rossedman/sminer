@@ -1,0 +1,74 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="brand.css">
+<style>
+  body { background: radial-gradient(900px 500px at 75% 10%, rgba(111,220,203,0.06), transparent 70%), var(--ink); }
+  .state { position: absolute; width: 196px; height: 96px; border-radius: 18px; background: var(--ink-2); border: 1px solid var(--ink-3);
+           display: flex; flex-direction: column; justify-content: center; padding: 0 22px; }
+  .state b { font-size: 22px; font-weight: 700; }
+  .state span { margin-top: 4px; font-size: 13.5px; color: var(--mist); }
+  .open { border-color: rgba(244,180,67,0.6); box-shadow: 0 0 0 5px rgba(244,180,67,0.07); } .open b { color: var(--ore); }
+  .accepted { border-color: rgba(111,220,203,0.55); } .accepted b { color: var(--gem); }
+  .dismissed { border-style: dashed; } .dismissed b { color: var(--mist); }
+  .src { position: absolute; left: 40px; top: 238px; width: 150px; height: 84px; border-radius: 14px; border: 1px dashed var(--ink-3);
+         display: flex; flex-direction: column; justify-content: center; padding: 0 16px; }
+  .src b { font-size: 16px; font-weight: 600; } .src span { font-size: 12.5px; color: var(--dim); margin-top: 3px; }
+  .cmd { position: absolute; font-size: 13.5px; color: var(--cream); background: var(--ink); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--ink-3); white-space: nowrap; }
+  .sub { position: absolute; font-size: 12.5px; color: var(--dim); white-space: nowrap; }
+
+  .chart { position: absolute; left: 728px; top: 92px; width: 512px; height: 420px; border-radius: 18px; background: var(--ink-4); border: 1px solid var(--ink-3); padding: 22px 26px; }
+  .chart .h { font-size: 13.5px; color: var(--dim); }
+  .chart .h b { color: var(--cream); font-weight: 500; }
+  .bars { position: absolute; left: 26px; right: 26px; bottom: 112px; height: 200px; display: flex; align-items: flex-end; gap: 10px; border-bottom: 1px solid var(--ink-3); }
+  .bars i { flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--ember), rgba(242,131,111,0.55)); }
+  .bars i.after { background: linear-gradient(180deg, var(--gem), rgba(111,220,203,0.45)); }
+  .adopt { position: absolute; top: 74px; bottom: 104px; border-left: 2px dashed var(--ore); }
+  .adopt span { position: absolute; top: -26px; left: -60px; width: 120px; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--ore); }
+  .rates { position: absolute; left: 26px; right: 26px; bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .rate { padding: 12px 14px; border-radius: 12px; background: var(--ink-2); border: 1px solid var(--ink-3); }
+  .rate b { display: block; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .rate span { font-size: 12.5px; color: var(--mist); }
+  .before b { color: var(--ember); } .after b { color: var(--gem); }
+  svg { position: absolute; inset: 0; }
+</style></head>
+<body>
+  <div class="label" style="left:42px; top:40px">A finding's life</div>
+
+  <div class="src"><b>analyze</b><span>a new cluster of signals</span></div>
+  <div class="state open" style="left:254px; top:232px"><b>open</b><span>in the report, ranked</span></div>
+  <div class="state accepted" style="left:470px; top:96px"><b>accepted</b><span>patch written, dated</span></div>
+  <div class="state dismissed" style="left:470px; top:368px"><b>dismissed</b><span>hidden from reports</span></div>
+
+  <span class="cmd mono" style="left:282px; top:120px">finding accept</span>
+  <span class="cmd mono" style="left:282px; top:446px">finding dismiss</span>
+  <span class="cmd mono" style="left:572px; top:268px">finding reopen</span>
+  <span class="sub" style="left:42px; top:334px">IDs stay stable on re-analysis</span>
+
+  <svg viewBox="0 0 1280 560">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#767c99"/></marker>
+      <marker id="g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6fdccb"/></marker>
+    </defs>
+    <path d="M190 280 L250 280" stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)"/>
+    <!-- accept / dismiss -->
+    <path d="M330 230 C330 170 380 144 466 144" stroke="#6fdccb" stroke-width="2" fill="none" marker-end="url(#g)"/>
+    <path d="M330 330 C330 390 380 416 466 416" stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)"/>
+    <!-- reopen, from both back to open -->
+    <path d="M560 194 C560 240 520 270 454 274" stroke="#767c99" stroke-width="2" stroke-dasharray="5 5" fill="none" marker-end="url(#a)"/>
+    <path d="M560 366 C560 320 520 290 454 286" stroke="#767c99" stroke-width="2" stroke-dasharray="5 5" fill="none" marker-end="url(#a)"/>
+    <!-- accepted feeds the trend -->
+    <path d="M666 144 L724 144" stroke="#6fdccb" stroke-width="2" fill="none" marker-end="url(#g)"/>
+  </svg>
+
+  <div class="chart">
+    <div class="h mono"><span class="p">$</span> <b>sminer finding trend Fc72cc0</b></div>
+    <div class="bars">
+      <i style="height:46%"></i><i style="height:62%"></i><i style="height:54%"></i><i style="height:78%"></i><i style="height:70%"></i><i style="height:88%"></i><i style="height:66%"></i>
+      <i class="after" style="height:24%"></i><i class="after" style="height:12%"></i><i class="after" style="height:4%"></i><i class="after" style="height:10%"></i><i class="after" style="height:3%"></i>
+    </div>
+    <div class="adopt" style="left:295px"><span>adopted</span></div>
+    <div class="rates">
+      <div class="rate before"><b>3.4 / week</b><span>before the hook</span></div>
+      <div class="rate after"><b>0.5 / week</b><span>after, −85%</span></div>
+    </div>
+  </div>
+</body></html>

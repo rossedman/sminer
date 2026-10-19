@@ -1,0 +1,57 @@
+/* Shared look for the README graphics and diagrams. Rendered to PNG by
+   ../render.sh. Fonts are vendored in fonts/ (SIL OFL) so renders are
+   reproducible offline. The site uses the same palette (site/theme.css). */
+@font-face { font-family: Inter; src: url(fonts/Inter-Variable.woff2) format("woff2"); font-weight: 100 900; }
+@font-face { font-family: "JetBrains Mono"; src: url(fonts/JetBrainsMono-Variable.woff2) format("woff2"); font-weight: 100 800; }
+
+:root {
+  --ink: #0e1020;        /* background: night */
+  --ink-2: #151830;      /* raised panels */
+  --ink-3: #252a4a;      /* borders, inner panels */
+  --ink-4: #090b17;      /* terminals, wells */
+  --ore: #f4b443;        /* primary: amber ore */
+  --ore-2: #ffd98c;      /* light ore */
+  --ore-3: #c7861c;      /* deep ore */
+  --gem: #6fdccb;        /* secondary: crystal teal */
+  --ember: #f2836f;      /* corrections, friction */
+  --violet: #a99cf5;     /* the network, the model */
+  --cream: #f6f2e9;      /* headings */
+  --mist: #b2b6cb;       /* body text */
+  --dim: #767c99;        /* secondary text */
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: Inter, sans-serif;
+  color: var(--cream);
+  background: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  position: relative;
+}
+.mono { font-family: "JetBrains Mono", monospace; font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+
+/* Faint grid, used behind heroes. */
+.grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(244,180,67,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244,180,67,0.055) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Section label, top left of diagrams. */
+.label { position: absolute; font-size: 15px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ore); }
+
+/* Terminal window. */
+.term { border-radius: 14px; background: var(--ink-4); border: 1px solid var(--ink-3); box-shadow: 0 24px 60px rgba(0,0,0,0.5); overflow: hidden; }
+.term .bar { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: var(--ink-2); }
+.term .bar i { width: 11px; height: 11px; border-radius: 50%; background: #343a63; display: block; }
+.term .bar span { margin-left: auto; margin-right: auto; padding-right: 48px; font-size: 13px; color: var(--dim); }
+.term .body { padding: 16px 20px 18px; line-height: 1.75; color: var(--mist); white-space: pre; }
+.p { color: var(--ore); }
+.c { color: var(--cream); }
+.ok { color: var(--gem); }
+.d { color: var(--dim); }
+.e { color: var(--ember); }
+.v { color: var(--violet); }

@@ -1,0 +1,110 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="brand.css">
+<style>
+  body { background: radial-gradient(1000px 520px at 50% 0%, rgba(244,180,67,0.07), transparent 70%), var(--ink); }
+
+  /* The network: the only thing outside the machine. */
+  .api { position: absolute; left: 440px; top: 30px; width: 400px; height: 82px; border-radius: 16px;
+         background: rgba(169,156,245,0.08); border: 1px dashed rgba(169,156,245,0.6);
+         display: flex; align-items: center; gap: 16px; padding: 0 20px; }
+  .api b { display: block; font-size: 19px; font-weight: 700; color: var(--cream); }
+  .api span { display: block; margin-top: 3px; font-size: 14px; color: var(--mist); }
+
+  .machine { position: absolute; left: 30px; right: 30px; top: 146px; bottom: 30px; border-radius: 24px;
+             background: var(--ink-2); border: 1px solid var(--ink-3); }
+  .machine h2 { position: absolute; left: 30px; top: 22px; font-size: 22px; font-weight: 700; }
+  .machine h2 small { font-size: 15px; font-weight: 500; color: var(--dim); margin-left: 10px; }
+
+  /* The store every stage sits on. */
+  .track { position: absolute; left: 54px; right: 54px; top: 226px; height: 196px; border-radius: 18px;
+           background: rgba(244,180,67,0.05); border: 1px solid rgba(244,180,67,0.22); }
+  .track .db { position: absolute; left: 22px; bottom: 13px; text-align: left; font-size: 14px; color: var(--mist); }
+  .track .db b { color: var(--ore); font-weight: 600; }
+
+  .stage { position: absolute; top: 244px; width: 148px; height: 128px; border-radius: 14px; background: var(--ink);
+           border: 1px solid var(--ink-3); padding: 14px 14px 0; }
+  .stage .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800;
+              color: var(--ink); background: var(--ore); }
+  .stage b { display: block; margin-top: 10px; font-size: 17px; font-weight: 600; color: var(--cream); }
+  .stage span { display: block; margin-top: 5px; font-size: 13px; white-space: nowrap; line-height: 1.35; color: var(--mist); }
+  .stage.input { border-style: dashed; background: transparent; }
+  .stage.input .n { background: var(--ink-3); color: var(--cream); }
+  .stage.net { border-color: rgba(169,156,245,0.65); box-shadow: 0 0 0 4px rgba(169,156,245,0.08); }
+  .stage.net .n { background: var(--violet); }
+
+  .side { position: absolute; top: 452px; height: 66px; border-radius: 12px; border: 1px dashed var(--ink-3);
+          display: flex; flex-direction: column; justify-content: center; padding: 0 16px; }
+  .side b { font-size: 15px; font-weight: 600; color: var(--cream); }
+  .side span { margin-top: 2px; font-size: 13px; color: var(--mist); }
+
+  .out { position: absolute; top: 166px; left: 908px; width: 306px; height: 44px; border-radius: 10px;
+         background: rgba(111,220,203,0.08); border: 1px solid rgba(111,220,203,0.4);
+         display: flex; align-items: center; justify-content: center; font-size: 13.5px; color: var(--gem); }
+
+  .notes { position: absolute; left: 54px; right: 54px; top: 546px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .note { height: 124px; padding: 18px 20px; border-radius: 14px; background: var(--ink); border: 1px solid var(--ink-3); }
+  .note .t { display: flex; align-items: center; gap: 10px; font-size: 16.5px; font-weight: 700; color: var(--cream); }
+  .note .t i { font-style: normal; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 15px; }
+  .note p { margin-top: 8px; font-size: 14px; line-height: 1.5; color: var(--mist); }
+  .ore-i { background: rgba(244,180,67,0.14); color: var(--ore); }
+  .vio-i { background: rgba(169,156,245,0.14); color: var(--violet); }
+  .gem-i { background: rgba(111,220,203,0.14); color: var(--gem); }
+
+  svg.wires { position: absolute; inset: 0; pointer-events: none; }
+</style></head>
+<body>
+  <div class="label" style="left:46px; top:42px">How it works</div>
+
+  <div class="api">
+    <div class="note-i vio-i" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;font-weight:800">✳</div>
+    <div><b>Anthropic API</b><span>~2 KB per candidate · --offline skips it</span></div>
+  </div>
+
+  <div class="machine"><h2>Your machine <small>everything below stays local</small></h2></div>
+
+  <div class="out mono">report.md · findings.json · patches/</div>
+
+  <div class="track"><div class="db">every stage reads and writes <b>SQLite</b> · redacted extracts, never raw transcripts</div></div>
+
+  <div class="stage input" style="left:68px"><div class="n mono">~</div><b class="mono">transcripts</b><span>~/.claude/projects<br>read-only</span></div>
+  <div class="stage " style="left:234px"><div class="n">1</div><b class="mono">ingest</b><span>new lines only,<br>redacted</span></div>
+  <div class="stage " style="left:400px"><div class="n">2</div><b class="mono">signal</b><span>7 kinds of<br>friction</span></div>
+  <div class="stage net" style="left:566px"><div class="n">3</div><b class="mono">classify</b><span>model confirms<br>candidates</span></div>
+  <div class="stage " style="left:732px"><div class="n">4</div><b class="mono">cluster</b><span>one finding<br>per rule</span></div>
+  <div class="stage " style="left:898px"><div class="n">5</div><b class="mono">remedy</b><span>hook, CLAUDE.md<br>line or skill</span></div>
+  <div class="stage " style="left:1064px"><div class="n">6</div><b class="mono">report</b><span>ranked, with<br>patches to accept</span></div>
+
+  <div class="side" style="left:640px; width:250px"><b>Local embeddings</b><span>built-in hashed model, or ollama</span></div>
+  <div class="side" style="left:908px; width:306px"><b>Your setup, read-only</b><span>CLAUDE.md · settings hooks · skills</span></div>
+
+  <div class="notes">
+    <div class="note"><div class="t"><i class="ore-i">◆</i>Redacted before it is stored</div>
+      <p>Tokens, keys and passwords are masked on ingest. Output of successful tool calls is never kept.</p></div>
+    <div class="note"><div class="t"><i class="vio-i">✳</i>One stage touches the network</div>
+      <p>Only <span class="mono" style="color:var(--cream)">classify</span> calls the model, with the user turn and a short summary of the action before it.</p></div>
+    <div class="note"><div class="t"><i class="gem-i">→</i>Writes only what you accept</div>
+      <p>Each accepted finding becomes a patch file. Your CLAUDE.md, hooks and settings are never edited for you.</p></div>
+  </div>
+
+  <svg class="wires" viewBox="0 0 1280 720">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#767c99"/></marker>
+      <marker id="av" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#a99cf5"/></marker>
+      <marker id="ag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#6fdccb"/></marker>
+    </defs>
+    <!-- stage to stage -->
+    <g stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)"><path d="M218 308 L231 308"/><path d="M384 308 L397 308"/><path d="M550 308 L563 308"/><path d="M716 308 L729 308"/><path d="M882 308 L895 308"/><path d="M1048 308 L1061 308"/></g>
+    <!-- classify to the API and back -->
+    <path d="M630 242 L630 116" stroke="#a99cf5" stroke-width="2" stroke-dasharray="5 5" fill="none" marker-end="url(#av)"/>
+    <path d="M650 116 L650 240" stroke="#a99cf5" stroke-width="2" stroke-dasharray="5 5" fill="none" marker-end="url(#av)"/>
+    <!-- side inputs up into cluster and remedy -->
+    <g stroke="#767c99" stroke-width="2" fill="none" marker-end="url(#a)">
+      <path d="M806 450 L806 376"/><path d="M972 450 L972 376"/>
+    </g>
+    <!-- report out -->
+    <path d="M1138 242 L1138 214" stroke="#6fdccb" stroke-width="2" fill="none" marker-end="url(#ag)"/>
+  </svg>
+</body></html>

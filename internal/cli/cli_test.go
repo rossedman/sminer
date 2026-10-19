@@ -110,7 +110,8 @@ func TestHelpAndUsageErrors(t *testing.T) {
 		{[]string{"report", "--quiet", "--verbose"}, ExitUsage, "", "none of the others can be"},
 		{[]string{"--config", "/does/not/exist.yaml", "finding", "list"}, ExitUsage, "", "config file not found"},
 		{[]string{"finding", "list", "--status", "bogus"}, ExitUsage, "", "unknown status"},
-		{[]string{"run", "--since", "soon"}, ExitFailure, "", "bad duration"},
+		{[]string{"run", "--since", "soon"}, ExitUsage, "", "bad duration"},
+		{[]string{"report", "--min-count", "0"}, ExitUsage, "", "at least 1"},
 	}
 	for _, tt := range tests {
 		r := h.run(tt.argv...)

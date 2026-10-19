@@ -37,3 +37,6 @@ go.work.sum
 sminer-report.md
 findings.json
 *.prof
+
+# mkdocs build output
+/site/

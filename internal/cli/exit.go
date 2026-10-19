@@ -85,6 +85,8 @@ func resolve(err error) (exit int, code, hint string) {
 		return ExitConflict, "not_patchable", or(hint, "see why with 'sminer finding show <id>'")
 	case errors.Is(err, remedy.ErrTargetExists):
 		return ExitConflict, "target_exists", or(hint, "move the existing file aside, or dismiss the finding")
+	case errors.Is(err, config.ErrInvalid):
+		return ExitUsage, "config", or(hint, "check the value; 'sminer config show' shows where each setting came from")
 	case errors.Is(err, config.ErrNoFile):
 		return ExitUsage, "config", or(hint, "create it, or drop --config to run on defaults (see 'sminer config path')")
 	case isCobraUsage(err):

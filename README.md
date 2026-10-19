@@ -1,8 +1,28 @@
-# sminer
+<p align="center">
+  <img src="docs/assets/banner.png" alt="sminer: find the corrections you keep making to Claude, and fix them for good" width="100%">
+</p>
 
-`sminer` (session miner) is a local Go CLI that reads your Claude Code session transcripts, finds the corrections and friction you keep repeating across sessions, and proposes concrete fixes: a hook, a CLAUDE.md line, or a skill. It turns your guardrails from hand-curated into evidence-driven.
+<p align="center">
+  <a href="https://github.com/rossedman/sminer/actions/workflows/ci.yml"><img src="https://github.com/rossedman/sminer/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <a href="https://github.com/rossedman/sminer/actions/workflows/pages.yml"><img src="https://github.com/rossedman/sminer/actions/workflows/pages.yml/badge.svg" alt="docs"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f4b443" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/go-1.26-6fdccb" alt="Go 1.26">
+</p>
+
+sminer (session miner) reads your Claude Code session transcripts, finds the corrections and friction you repeat across sessions, and proposes a concrete fix for each: a hook, a CLAUDE.md line, or a skill. It turns your guardrails from hand-curated into evidence-driven.
 
 It never edits CLAUDE.md, settings or hooks itself. Its output is a ranked report plus a ready-to-apply patch for each finding you accept.
+
+**Docs: [rossedman.io/sminer](https://rossedman.io/sminer/)**
+
+- **Evidence, not memory.** Seven detectors find corrections, interrupts, rewinds, repeated instructions, hook blocks, failure loops and manual fix-ups, then group them by the rule underneath and rank them by how often they happen and in how many repos.
+- **The right remedy.** A rule a file path or command can enforce becomes a hook; judgment and style become a CLAUDE.md line; a procedure you keep re-explaining becomes a skill. Anything you already have is left out.
+- **Private by default.** Secrets are redacted before anything is stored, transcripts are never copied, and `--offline` keeps everything local. Otherwise about 2 KB per candidate goes to the classifier.
+- **Proof it worked.** `sminer finding trend` splits each finding's weekly rate at the day you adopted the fix.
+
+<p align="center">
+  <img src="docs/assets/how-it-works.png" alt="How sminer works: transcripts flow through ingest, signal, classify, cluster, remedy and report on your machine; only classify calls the Anthropic API." width="100%">
+</p>
 
 ## Install
 
@@ -153,20 +173,15 @@ Transcripts contain work code, secrets pasted by accident, and internal hostname
 
 ## How it works
 
-A linear batch pipeline in which every stage reads from and writes to SQLite, so any stage can be re-run on its own:
-
-```
-transcripts ─► ingest ─► signal ─► classify ─► cluster ─► remedy ─► report
- (JSONL)      turns     signals   (LLM, opt)   findings   proposals   md + json
-                                                  ▲          ▲
-                       local embeddings ──────────┘          └── existing CLAUDE.md, hooks, skills
-```
+A linear batch pipeline (diagram above) in which every stage reads from and writes to SQLite, so any stage can be re-run on its own. The [docs](https://rossedman.io/sminer/how-it-works/) walk through it stage by stage, with diagrams of [remedy routing](https://rossedman.io/sminer/findings/#remedy-routing) and [a finding's life](https://rossedman.io/sminer/findings/#a-findings-life).
 
 Packages map one-to-one to stages: `transcript`, `ingest`, `signal`, `classify`, `cluster`, `remedy` and `report`, with `store` wrapping SQLite. Around them:
 
 - `pipeline` runs the stages in order and defines the `--json` result types.
 - `finding` handles the lifecycle after analysis: list, show, accept, dismiss, reopen and trend.
-- `cli` is the cobra command tree. It parses input, resolves configuration through viper (`config`), and renders output, and it holds no domain logic. Findings keep a stable ID across runs because each new cluster is matched to an existing finding (by centroid similarity for corrections, by exact key for hooks, failures and fix-ups). That way accept/dismiss state and trends survive re-analysis.
+- `cli` is the cobra command tree. It parses input, resolves configuration through viper (`config`), and renders output, and it holds no domain logic.
+
+Findings keep a stable ID across runs because each new cluster is matched to an existing finding (by centroid similarity for corrections, by exact key for hooks, failures and fix-ups). That way accept/dismiss state and trends survive re-analysis.
 
 The transcript schema is undocumented and changes between releases. The decoder ignores unknown fields, accepts content as a string or as an array of blocks, and counts unknown event types (they appear in the report) instead of failing.
 
@@ -187,3 +202,5 @@ sminer eval --live   # also scores the live classifier (makes API calls)
 make check      # gofmt, go vet, tests
 make fuzz       # fuzz the line decoder
 ```
+
+The docs site is MkDocs Material, deployed to GitHub Pages by `.github/workflows/pages.yml`. Preview it with `pip install -r docs/requirements.txt && mkdocs serve`. The banner and diagrams are HTML in `docs/assets/src/`, rendered with `docs/assets/render.sh`.
