@@ -1,0 +1,97 @@
+// Hand-labelled candidate turns: the assistant's last action and the developer's next message.
+// correction=true means the message pushes back on what the assistant did or restates a convention it broke.
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "No, don't use testify. Plain table-driven tests with the standard library.", "correction": true}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "we don't use assert libraries in this repo", "correction": true}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "why did you add testify again? remove it", "correction": true}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "use t.Run subtests instead of separate functions", "correction": true}
+{"action": "Edit web/package-lock.json \u2014 bumped react-query", "message": "don't touch package-lock.json, run npm install", "correction": true}
+{"action": "Edit web/package-lock.json \u2014 bumped react-query", "message": "never hand edit lockfiles", "correction": true}
+{"action": "Edit web/package-lock.json \u2014 bumped react-query", "message": "revert the lockfile change", "correction": true}
+{"action": "Bash git push --force origin main", "message": "stop. never force push to main", "correction": true}
+{"action": "Bash git push --force origin main", "message": "I said open a PR, don't push directly", "correction": true}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "snake_case for resource names please, not camelCase", "correction": true}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "wrong naming convention, we use snake_case in terraform", "correction": true}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "Use for_each instead of count here", "correction": true}
+{"action": "Bash rm -rf ./build ./vendor", "message": "don't delete vendor, we commit it", "correction": true}
+{"action": "Bash rm -rf ./build ./vendor", "message": "wait, only remove build", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "that's not what I asked for, I wanted a middleware not a handler", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "you forgot to handle the error from Close()", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "undo that, keep the old signature", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "No - errors should be wrapped with %w, not %v", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "we always return early on errors, don't nest the happy path", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "use slog, not log.Printf", "correction": true}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "you broke the build again, still failing", "correction": true}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "stop running the whole suite, just run the package you changed", "correction": true}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "I told you to run with -race", "correction": true}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "you didn't update the docs like I asked", "correction": true}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "that's not done, the integration test is still red", "correction": true}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "no, you ignored the second requirement", "correction": true}
+{"action": "Edit README.md \u2014 rewrote the install section", "message": "don't rewrite the whole README, I only asked for the install section", "correction": true}
+{"action": "Edit README.md \u2014 rewrote the install section", "message": "put the badges back, why did you remove them?", "correction": true}
+{"action": "Bash npm install lodash", "message": "we use pnpm, not npm", "correction": true}
+{"action": "Bash npm install lodash", "message": "don't add lodash, use the native methods", "correction": true}
+{"action": "Bash npm install lodash", "message": "no new dependencies without asking", "correction": true}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "Actually, please keep the old fixtures and use golden files", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "incorrect, the config should be loaded once at startup", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "roll back the interface change", "correction": true}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "never hardcode the region, use the variable", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "Why are you using a global here? Pass it in.", "correction": true}
+{"action": "Bash git push --force origin main", "message": "don't commit directly to main", "correction": true}
+{"action": "Edit README.md \u2014 rewrote the install section", "message": "stop adding emojis to docs", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "instead of a map use a switch", "correction": true}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "nope, that test is flaky because of the sleep, fix the sleep don't retry", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "Don't add comments that restate the code.", "correction": true}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "you deleted the edge case tests, put them back", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "hmm no, keep the function exported", "correction": true}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "you changed the public API without asking", "correction": true}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "please use the existing helper, don't write a new one", "correction": true}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "looks good, commit it", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "great, thanks!", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Now add pagination to the list endpoint", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "can you also add a metrics counter?", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "what does the ctx parameter do here?", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "ok continue", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "nice. next, wire it into main.go", "correction": false}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "tests pass on my machine too, ship it", "correction": false}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "run the integration tests next", "correction": false}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "How long do these usually take?", "correction": false}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "Add an output for the bucket ARN", "correction": false}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "perfect, now do the same for the logs bucket", "correction": false}
+{"action": "Edit web/package-lock.json \u2014 bumped react-query", "message": "ok that works", "correction": false}
+{"action": "Bash rm -rf ./build ./vendor", "message": "yes go ahead", "correction": false}
+{"action": "Bash git push --force origin main", "message": "approved", "correction": false}
+{"action": "Edit README.md \u2014 rewrote the install section", "message": "can you add a section about configuration?", "correction": false}
+{"action": "Edit README.md \u2014 rewrote the install section", "message": "I don't know the exact flag names, check main.go", "correction": false}
+{"action": "Edit README.md \u2014 rewrote the install section", "message": "No problem, that's fine as is", "correction": false}
+{"action": "Bash npm install lodash", "message": "no worries, keep going", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Let's move on to the auth middleware", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "what's the test coverage now?", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "I think this is fine. Can you write the tests?", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "Explain why you chose a mutex over a channel", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "sounds good", "correction": false}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "add a test for the empty input case", "correction": false}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "also cover the timeout path", "correction": false}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "the CI run is green now", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Next task: migrate the users table to add an email_verified column", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Can you summarize what changed?", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "Now refactor the handler to use the new service interface we added yesterday.", "correction": false}
+{"action": "Bash npm install lodash", "message": "fine, keep lodash for now", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "do you think we need a cache here?", "correction": false}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "what region is this deploying to?", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Write a PR description for these changes", "correction": false}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "I don't think so, but check the logs", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "Should we use generics here? Not sure.", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Remember to ping me when the deploy finishes", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Thanks. Tomorrow we'll handle the migration.", "correction": false}
+{"action": "Edit README.md \u2014 rewrote the install section", "message": "Make the intro shorter and add an example", "correction": false}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "run it again with -v so I can see the output", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "/review", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Create a release branch and bump the version", "correction": false}
+{"action": "Edit internal/api/widgets_test.go \u2014 added assert.Equal checks", "message": "the table looks great, add two more cases", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "why is this function so slow? profile it", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Don't worry about the lint warnings in vendor/, they're upstream", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "never mind, I'll handle it myself", "correction": false}
+{"action": "Edit infra/s3.tf \u2014 resource \"aws_s3_bucket\" \"buildArtifacts\"", "message": "Actually, can you also add tags?", "correction": false}
+{"action": "Write internal/api/handler.go \u2014 write 1840 bytes", "message": "use the repository pattern for the new store", "correction": false}
+{"action": "Assistant said: Done! I've added the endpoint and updated the tests.", "message": "Instead of the REST endpoint, let's start with the gRPC one today", "correction": false}
+{"action": "Bash go test ./... \u2014 Run tests", "message": "still waiting on CI, let's look at the docs meanwhile", "correction": false}

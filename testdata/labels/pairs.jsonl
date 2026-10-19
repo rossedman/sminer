@@ -1,0 +1,41 @@
+// Labelled rule pairs for clustering: same=true when both state the same underlying rule.
+{"a": "Don't use testify/assert, use table-driven stdlib tests", "b": "no testify please. table-driven tests, standard library only", "same": true}
+{"a": "Write table-driven tests with the standard library, not testify/assert", "b": "Use stdlib table-driven tests instead of the testify assert package", "same": true}
+{"a": "Never hand-edit package-lock.json; regenerate it with npm install", "b": "don't edit package-lock.json by hand, run npm install", "same": true}
+{"a": "Use snake_case for Terraform resource names", "b": "terraform resource names should be snake_case not camelCase", "same": true}
+{"a": "Never force push to main; open a PR", "b": "don't force push to the main branch, open a pull request", "same": true}
+{"a": "Wrap errors with %w, not %v", "b": "use %w when wrapping errors instead of %v", "same": true}
+{"a": "Use pnpm, not npm", "b": "we use pnpm in this repo, not npm", "same": true}
+{"a": "Do not add new dependencies without asking", "b": "no new dependencies without asking me first", "same": true}
+{"a": "Use slog for logging, not log.Printf", "b": "log with slog instead of log.Printf", "same": true}
+{"a": "Return early on errors instead of nesting", "b": "return early on errors, don't nest the happy path", "same": true}
+{"a": "Don't delete the vendor directory; it is committed", "b": "never remove vendor/, we commit vendored deps", "same": true}
+{"a": "Run only the changed package's tests, not the whole suite", "b": "just run the tests for the package you changed, not the whole suite", "same": true}
+{"a": "Don't add comments that restate the code", "b": "stop adding comments that just restate what the code does", "same": true}
+{"a": "Never hardcode the AWS region; use the variable", "b": "don't hardcode the region, use the region variable", "same": true}
+{"a": "Use for_each instead of count in Terraform", "b": "prefer for_each over count for terraform resources", "same": true}
+{"a": "Keep public APIs unchanged unless asked", "b": "don't change the public API without asking", "same": true}
+{"a": "Don't add emojis to documentation", "b": "no emojis in the docs please", "same": true}
+{"a": "Use the existing helper instead of writing a new one", "b": "reuse the existing helper, don't write a new one", "same": true}
+{"a": "Run go test with -race", "b": "always run go test with the -race flag", "same": true}
+{"a": "Don't rewrite whole files when asked for a small change", "b": "only change the section I asked for, don't rewrite the whole file", "same": true}
+{"a": "Don't use testify/assert, use table-driven stdlib tests", "b": "Use snake_case for Terraform resource names", "same": false}
+{"a": "Never hand-edit package-lock.json", "b": "Never force push to main", "same": false}
+{"a": "Use pnpm, not npm", "b": "Use slog for logging, not log.Printf", "same": false}
+{"a": "Wrap errors with %w, not %v", "b": "Return early on errors instead of nesting", "same": false}
+{"a": "Don't add comments that restate the code", "b": "Don't add emojis to documentation", "same": false}
+{"a": "Run go test with -race", "b": "Run only the changed package's tests", "same": false}
+{"a": "Never hardcode the AWS region", "b": "Use for_each instead of count in Terraform", "same": false}
+{"a": "Don't delete the vendor directory", "b": "Don't add new dependencies without asking", "same": false}
+{"a": "Keep public APIs unchanged unless asked", "b": "Use the existing helper instead of writing a new one", "same": false}
+{"a": "Use table-driven tests", "b": "Use structured logging", "same": false}
+{"a": "Never hand-edit go.sum", "b": "Never hand-edit package-lock.json", "same": false}
+{"a": "Don't push directly to main", "b": "Don't commit generated files", "same": false}
+{"a": "Put the badges back in the README", "b": "Keep the install section short", "same": false}
+{"a": "Use t.Run subtests", "b": "Use golden files for fixtures", "same": false}
+{"a": "Don't run the full test suite", "b": "Don't run terraform apply locally", "same": false}
+{"a": "Use snake_case for Terraform resource names", "b": "Use camelCase for JSON field names", "same": false}
+{"a": "Load config once at startup", "b": "Pass dependencies in instead of using globals", "same": false}
+{"a": "Prefer a switch over a map here", "b": "Prefer pnpm over npm", "same": false}
+{"a": "Don't rewrite whole files when asked for a small change", "b": "Don't add new dependencies without asking", "same": false}
+{"a": "Write table-driven tests with the standard library", "b": "Write a PR description for every change", "same": false}

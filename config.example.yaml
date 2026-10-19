@@ -1,0 +1,41 @@
+# Copy to ~/.config/sminer/config.yaml. Every key is optional.
+
+# Where Claude Code keeps per-session JSONL transcripts.
+roots: [~/.claude/projects]
+
+# How far back to ingest and analyze.
+window: 90d
+
+# Repos never ingested (globs; a pattern also matches subdirectories).
+exclude_repos: ["~/personal/*"]
+
+classifier:
+  model: claude-haiku-5-5
+  # Caps classifier and proposal-drafting calls per run.
+  max_calls_per_run: 500
+  concurrency: 4
+
+embeddings:
+  # auto: a local ollama server if it answers, else the built-in hashed model.
+  provider: auto
+  model: nomic-embed-text
+  url: http://localhost:11434
+
+cluster:
+  # Cosine similarity needed to join a cluster. 0 uses the embedder default
+  # (0.45 hashed, 0.78 ollama).
+  threshold: 0
+
+redact:
+  # Added to the built-in secret patterns. A pattern also redacts a
+  # following "= value" or ": value".
+  patterns: ["(?i)aws_secret", "ghp_[A-Za-z0-9]+"]
+
+remedies:
+  hooks_dir: ~/src/claude-hooks
+  global_claude_md: ~/.claude/CLAUDE.md
+  skills_dir: ~/.claude/skills
+  settings: ~/.claude/settings.json
+
+db: ~/.local/share/sminer/sminer.db
+patch_dir: ~/.local/share/sminer/patches
