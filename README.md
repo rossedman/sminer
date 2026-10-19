@@ -15,38 +15,75 @@ It is a single binary with no cgo. The SQLite driver is pure Go (`modernc.org/sq
 ## Quick start
 
 ```sh
-sminer run --no-llm      # offline first pass: ingest, analyze, report
-open sminer-report.md
+sminer run --offline                 # first pass, nothing leaves the machine; report on stdout
+sminer run --output ~/notes/sminer.md
 
 export ANTHROPIC_API_KEY=...
-sminer run               # LLM confirms candidates and writes better proposals
+sminer run                           # the classifier confirms candidates and drafts proposals
 
-sminer show F1a2b3c      # every excerpt behind one finding
-sminer accept F1a2b3c    # writes ~/.local/share/sminer/patches/F1a2b3c.patch
-sminer dismiss F9d8e7f --reason "intentional in this repo"
-sminer trend             # weekly rate per finding, before vs after adoption
+sminer finding list                  # open findings, highest score first
+sminer finding show F1a2b3c          # every excerpt behind one finding
+sminer finding accept F1a2b3c --preview
+sminer finding accept F1a2b3c        # prints the path of the patch it wrote
+sminer finding dismiss F9d8e7f --reason "intentional in this repo"
+sminer finding trend                 # weekly rate per finding, before vs after adoption
 ```
 
 ## Commands
 
 ```
-sminer ingest   [--since 90d] [--root ~/.claude/projects]
-sminer analyze  [--repo <path>] [--min-count 3] [--no-llm]
-sminer report   [--format md|json] [--out ./sminer-report.md]
-sminer show     <finding-id>        # all excerpts for one finding
-sminer accept   <finding-id>        # write the patch file, mark adopted
-sminer dismiss  <finding-id> [--reason ...]
-sminer trend    [<finding-id>]      # rate per week, before vs after adoption
-sminer run                          # ingest + analyze + report
-sminer eval     [--labels file] [--live]
+Mining
+  sminer run       [--since 90d] [--root DIR]... [--repo PATH] [--min-count 3] [-o FILE]
+  sminer ingest    [--since 90d] [--root DIR]...
+  sminer analyze   [--since 90d] [--repo PATH] [--min-count 3]
+  sminer report    [--since 90d] [--repo PATH] [--min-count 3] [-o FILE]
+
+Acting on findings
+  sminer finding list     [--status open|accepted|dismissed|all]
+  sminer finding show     <id>
+  sminer finding accept   <id>... [--preview] [--patch-dir DIR]
+  sminer finding dismiss  <id>... [--reason TEXT]
+  sminer finding reopen   <id>...
+  sminer finding trend    [<id>]
+
+Other
+  sminer config show | path
+  sminer eval [--labels FILE] [--live]
+  sminer version
+  sminer completion bash|zsh|fish|powershell
+
+Global flags
+  --config FILE  --db FILE  --offline  --json  -q/--quiet  -v/--verbose  --no-color
 ```
 
-Every command also accepts `--config` and `--db`.
+`sminer <command> --help` shows examples for every command.
 
-- **ingest** is incremental. Each transcript is re-read only from the byte offset where the last run stopped. A partially written last line is left for the next run.
-- **analyze** recomputes signals for sessions with new turns, confirms candidates with the classifier (unless you pass `--no-llm`), clusters the signals into findings, and routes each finding to a remedy.
-- **report** writes the Markdown report, with `findings.json` beside it. Findings are ranked by `count × weight × repos`.
-- **accept** renders the finding's patch against the target as it is right now and records the adoption date, so `trend` can show whether the fix worked. Apply one patch before you accept the next one for the same file.
+- **ingest** is incremental. Each transcript is re-read only from the byte offset where the last run stopped, and a partially written last line is left for the next run.
+- **analyze** recomputes signals for sessions with new turns, confirms candidates with the classifier (unless offline), clusters the signals into findings, and routes each finding to a remedy.
+- **report** prints Markdown on stdout, ranked by `count × weight × repos`. With `--output FILE` it writes the file atomically and puts `findings.json` beside it.
+- **finding accept** renders the patch against the target as it is right now, writes it to the patch directory, prints its path, and records the adoption date so `finding trend` can show whether the fix worked. `--preview` prints the patch and changes nothing. Apply one patch before accepting another for the same file.
+- **finding reopen** undoes accept or dismiss.
+
+### Output, scripting and exit codes
+
+- stdout carries only data: reports, JSON, patch paths. Progress, warnings and errors go to stderr, so `sminer run > report.md` and pipes work as you'd expect. `-q` silences stderr except for errors; `-v` adds detail.
+- `--json` works on every command that returns data, and errors are JSON too (on stderr): `{"error": {"code": "not_found", "exit": 4, "message": "...", "hint": "..."}}`. JSON fields are only ever added, never renamed or removed.
+- Plain lists are line-oriented, one record per line, and print a header only on a terminal. An empty result prints nothing and exits 0.
+- Color only decorates text that already says the same thing. It is off when output isn't a terminal, with `NO_COLOR`, with `TERM=dumb`, and with `--no-color`.
+- Shell completion covers commands, flags and live finding IDs: `source <(sminer completion zsh)`.
+
+| Exit code | Meaning |
+|---|---|
+| 0 | Success, including empty results |
+| 1 | Runtime failure |
+| 2 | Usage error: bad flag, argument or config value |
+| 4 | The named finding does not exist |
+| 5 | Precondition failed: nothing to patch, no remedy yet, target file already exists |
+| 130 | Interrupted (Ctrl-C) |
+
+### Renamed in 0.2
+
+The 0.1 names still work until 2027-04-30, each printing a notice on stderr: `sminer show|accept|dismiss|trend` (now under `sminer finding`), `--no-llm` (now `--offline`), and `report --format`/`--out` (now `--json`/`--output`). `report` and `run` now print to stdout instead of writing `./sminer-report.md`; pass `--output` to write a file.
 
 ## What it looks for
 
@@ -75,11 +112,19 @@ When both a hook and a CLAUDE.md line would fit, the hook wins: deterministic be
 
 ## Configuration
 
-`~/.config/sminer/config.yaml` (see [`config.example.yaml`](config.example.yaml)):
+sminer runs with no configuration. To change a setting, use a flag, an environment variable or the config file. The first one set wins, in this order:
+
+1. command-line flags
+2. `SMINER_*` environment variables: every key has one, e.g. `classifier.model` is `SMINER_CLASSIFIER_MODEL`, and `SMINER_OFFLINE=1` keeps everything local
+3. the config file, `$XDG_CONFIG_HOME/sminer/config.yaml` (default `~/.config/sminer/config.yaml`), or the one named by `--config`
+4. built-in defaults
+
+`sminer config show` prints every effective value and the layer that set it. `sminer config path` prints the file location. See [`config.example.yaml`](config.example.yaml) for every key:
 
 ```yaml
 roots: [~/.claude/projects]
 window: 90d
+min_count: 3
 exclude_repos: ["~/personal/*"]
 classifier:
   model: claude-haiku-5-5
@@ -91,10 +136,9 @@ remedies:
   global_claude_md: ~/.claude/CLAUDE.md
 embeddings:
   provider: auto            # ollama if it answers locally, else the built-in hashed model
-  model: nomic-embed-text
 ```
 
-State lives in `~/.local/share/sminer/sminer.db`, created with mode `0600`.
+State lives under `$XDG_DATA_HOME/sminer` (default `~/.local/share/sminer`): the database `sminer.db` (mode `0600`) and accepted patches in `patches/`. To uninstall completely, delete the binary, that directory and the config file.
 
 ## Privacy and safety
 
@@ -102,9 +146,9 @@ Transcripts contain work code, secrets pasted by accident, and internal hostname
 
 - **Redaction on ingest.** Built-in patterns cover AWS keys, GitHub and GitLab tokens, JWTs, private keys, Anthropic/OpenAI-style keys, Slack tokens and `password=`-style assignments. Your configured patterns are added on top. Only redacted, truncated extracts are stored, and output from successful tool calls is not kept at all. Raw transcripts are never copied into the database; rows point back to a file path and byte offset.
 - **Classifier calls** send only the candidate user turn and a truncated summary of the preceding assistant actions (tool name, path or command, a short snippet), capped at about 2 KB. They never include file contents or tool output bodies. When the model is enabled, `analyze` also sends up to 8 redacted excerpts per correction cluster in one call to draft a title and proposal. Hook, failure-loop and fix-up findings are never sent.
-- **`--no-llm`** keeps everything on the machine. Repos matching `exclude_repos` are not ingested at all.
+- **`--offline`** (or `SMINER_OFFLINE=1`) keeps everything on the machine. Repos matching `exclude_repos` are not ingested at all.
 - **Embeddings are local.** They come from the built-in hashed model or a local ollama server.
-- **Read-only against `~/.claude`.** `accept` writes only patch files.
+- **Read-only against `~/.claude`.** `finding accept` writes only patch files, and only into the patch directory; `--output` writes only where you point it.
 - Before you run the classifier on work repos, confirm that your employer's AI data policy allows it.
 
 ## How it works
@@ -118,7 +162,11 @@ transcripts ─► ingest ─► signal ─► classify ─► cluster ─► re
                        local embeddings ──────────┘          └── existing CLAUDE.md, hooks, skills
 ```
 
-Packages map one-to-one to stages: `transcript`, `ingest`, `signal`, `classify`, `cluster`, `remedy` and `report`, with `store` wrapping SQLite. Findings keep a stable ID across runs because each new cluster is matched to an existing finding (by centroid similarity for corrections, by exact key for hooks, failures and fix-ups). That way accept/dismiss state and trends survive re-analysis.
+Packages map one-to-one to stages: `transcript`, `ingest`, `signal`, `classify`, `cluster`, `remedy` and `report`, with `store` wrapping SQLite. Around them:
+
+- `pipeline` runs the stages in order and defines the `--json` result types.
+- `finding` handles the lifecycle after analysis: list, show, accept, dismiss, reopen and trend.
+- `cli` is the cobra command tree. It parses input, resolves configuration through viper (`config`), and renders output, and it holds no domain logic. Findings keep a stable ID across runs because each new cluster is matched to an existing finding (by centroid similarity for corrections, by exact key for hooks, failures and fix-ups). That way accept/dismiss state and trends survive re-analysis.
 
 The transcript schema is undocumented and changes between releases. The decoder ignores unknown fields, accepts content as a string or as an array of blocks, and counts unknown event types (they appear in the report) instead of failing.
 

@@ -6,6 +6,7 @@
 package signal
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -231,7 +232,7 @@ type Stats struct {
 // Run recomputes signals for sessions that ingest marked dirty, then runs
 // the cross-session repeated-instruction pass. Classifier results on
 // signals that survive are kept.
-func Run(st *store.Store, opt Options) (Stats, error) {
+func Run(ctx context.Context, st *store.Store, opt Options) (Stats, error) {
 	stats := Stats{ByType: map[string]int{}}
 	if opt.MinSessions <= 0 {
 		opt.MinSessions = 3
@@ -256,6 +257,9 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 	rows.Close()
 
 	for _, sid := range dirty {
+		if err := ctx.Err(); err != nil {
+			return stats, err
+		}
 		turns, err := st.SessionTurns(sid)
 		if err != nil {
 			return stats, err

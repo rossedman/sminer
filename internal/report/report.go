@@ -306,7 +306,7 @@ func WriteMarkdown(w io.Writer, r Report) error {
 
 	fmt.Fprintf(&b, "## Findings (%d)\n\n", len(r.Findings))
 	if len(r.Findings) == 0 {
-		b.WriteString("No recurring findings at this threshold. Try a lower `--min-count` or a longer window.\n\n")
+		b.WriteString("No recurring findings at this threshold. Try a lower `--min-count` or a longer `--since`.\n\n")
 	}
 	for i, f := range r.Findings {
 		writeFinding(&b, i+1, f)
@@ -390,7 +390,7 @@ func writeFinding(b *strings.Builder, n int, f Finding) {
 		fmt.Fprintf(b, "```diff\n+ - %s\n```\n\n", p.Rule)
 	}
 	if f.Status == store.StatusOpen {
-		fmt.Fprintf(b, "Accept with `sminer accept %s`, or `sminer dismiss %s --reason ...`.\n\n", f.ID, f.ID)
+		fmt.Fprintf(b, "Preview with `sminer finding accept %s --preview`; dismiss with `sminer finding dismiss %s`.\n\n", f.ID, f.ID)
 	}
 }
 
