@@ -31,3 +31,9 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# sminer
+/sminer
+sminer-report.md
+findings.json
+*.prof
