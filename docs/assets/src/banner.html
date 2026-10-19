@@ -1,0 +1,41 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="brand.css">
+<style>
+  body {
+    background:
+      radial-gradient(900px 440px at 14% 30%, rgba(244,180,67,0.15), transparent 70%),
+      radial-gradient(700px 420px at 95% 115%, rgba(111,220,203,0.10), transparent 70%),
+      var(--ink);
+  }
+  .grid { mask-image: linear-gradient(90deg, rgba(0,0,0,0.9), rgba(0,0,0,0.15)); }
+  .wrap { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 60px 0 64px; gap: 36px; }
+  .logo { width: 156px; height: 156px; flex: none; filter: drop-shadow(0 18px 30px rgba(0,0,0,0.5)); }
+  .text { flex: 1; min-width: 0; }
+  h1 { font-size: 96px; font-weight: 800; letter-spacing: -4px; line-height: 0.95; }
+  h1 span { color: var(--ore); }
+  p { margin-top: 18px; font-size: 24px; line-height: 1.4; color: var(--mist); }
+  p b { color: var(--cream); font-weight: 600; }
+  .term { width: 452px; flex: none; }
+  .term .body { font-size: 14.5px; }
+  .tag { display: inline-block; width: 96px; }
+</style></head>
+<body>
+  <div class="grid"></div>
+  <div class="wrap">
+    <img class="logo" src="../site/logo.svg" alt="">
+    <div class="text">
+      <h1>s<span>miner</span></h1>
+      <p>Find the corrections you keep making<br>to Claude, <b>and fix them for good.</b></p>
+    </div>
+    <div class="term mono">
+      <div class="bar"><i></i><i></i><i></i><span>~ zsh</span></div>
+      <div class="body"><span class="p">$</span> <span class="c">sminer run --offline -o report.md</span>
+<span class="d">·</span> ingested <span class="c">4,212</span> lines from 318 sessions
+<span class="d">·</span> analyzed: <span class="c">9</span> findings, <span class="ok">3 new</span>
+<span class="p">$</span> <span class="c">sminer finding list</span>
+<span class="ok">Fc72cc0</span>  <span class="tag v">hook</span><span class="c">Never hand-edit lockfiles</span>
+<span class="ok">Fcd5b9b</span>  <span class="tag p">claude_md</span><span class="c">Table tests, not testify</span>
+<span class="ok">F15ec9e</span>  <span class="tag e">skill</span><span class="c">Lint and test, then commit</span></div>
+    </div>
+  </div>
+</body></html>

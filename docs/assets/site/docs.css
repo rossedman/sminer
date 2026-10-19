@@ -1,0 +1,102 @@
+/* Doc pages: Material's dark scheme in the brand colors (landing.css defines
+   the variables). Tuned for long-form reading: generous line height, a
+   narrow measure, quiet chrome. */
+
+[data-md-color-scheme="slate"] {
+  --md-typeset-color: var(--mist);
+  --md-default-fg-color--light: var(--mist);
+  --md-default-fg-color--lighter: var(--dim);
+  --md-default-fg-color--lightest: var(--ink-3);
+  --md-code-bg-color: var(--ink-4);
+  --md-code-fg-color: var(--cream);
+  --md-code-hl-color: rgba(244, 180, 67, 0.12);
+  --md-code-hl-keyword-color: var(--ore);
+  --md-code-hl-string-color: var(--gem);
+  --md-code-hl-comment-color: var(--dim);
+  --md-code-hl-number-color: var(--ember);
+  --md-code-hl-function-color: var(--violet);
+  --md-code-hl-name-color: var(--cream);
+  --md-code-hl-variable-color: var(--cream);
+  --md-code-hl-punctuation-color: var(--mist);
+  --md-code-hl-operator-color: var(--mist);
+  --md-code-hl-constant-color: var(--ore-2);
+  --md-typeset-kbd-color: var(--ink-2);
+  --md-typeset-table-color: var(--ink-3);
+  --md-typeset-table-color--light: rgba(244, 180, 67, 0.04);
+  --md-admonition-bg-color: var(--ink-2);
+  --md-footer-fg-color--light: var(--mist);
+  --md-shadow-z1: none;
+}
+
+/* Header tabs */
+.md-tabs { background: rgba(14, 16, 32, 0.74); border-bottom: 1px solid rgba(244, 180, 67, 0.08); }
+.md-tabs__link { color: var(--mist); opacity: 1; font-weight: 500; }
+.md-tabs__link:hover, .md-tabs__item--active .md-tabs__link { color: var(--ore); }
+
+/* Sidebars */
+.md-nav__title { color: var(--cream); }
+.md-nav__item--section > .md-nav__link {
+  color: var(--dim) !important;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.md-nav__link--active, .md-nav__link:hover { color: var(--ore) !important; }
+
+/* Text: a comfortable measure for reading. */
+.md-typeset { font-size: 0.8rem; line-height: 1.75; }
+.md-content__inner { max-width: 44rem; }
+.md-typeset h1 { color: var(--cream); font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.6rem; }
+.md-typeset h1 + p { font-size: 0.92rem; color: var(--cream); opacity: 0.86; }
+.md-typeset h2 {
+  color: var(--cream); font-weight: 700; letter-spacing: -0.02em;
+  margin-top: 2.2em; padding-top: 0.6em; border-top: 1px solid var(--ink-3);
+}
+.md-typeset h3 { color: var(--ore-2); font-weight: 600; }
+.md-typeset strong { color: var(--cream); }
+.md-typeset a { color: var(--ore); }
+.md-typeset a:hover { color: var(--ore-2); }
+.md-typeset .headerlink { color: var(--dim); }
+
+/* Code */
+.md-typeset code { border-radius: 0.3em; font-variant-ligatures: none; }
+.md-typeset :not(pre) > code { color: var(--ore-2); background: rgba(244, 180, 67, 0.09); }
+.md-typeset pre > code { border: 1px solid var(--ink-3); border-radius: 0.6rem; }
+.md-typeset .md-clipboard { color: var(--dim); }
+.md-typeset .md-clipboard:hover { color: var(--ore); }
+
+/* Tables */
+.md-typeset table:not([class]) { border: 1px solid var(--ink-3); border-radius: 0.6rem; overflow: hidden; font-size: 0.74rem; }
+.md-typeset table:not([class]) th { background: var(--ink-2); color: var(--cream); font-weight: 600; }
+.md-typeset table:not([class]) td { border-top: 1px solid var(--ink-3); vertical-align: top; }
+
+/* Quotes: example corrections and prompts */
+.md-typeset blockquote {
+  color: var(--cream);
+  border-left: 3px solid var(--ember);
+  background: rgba(242, 131, 111, 0.06);
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.6rem 1rem;
+}
+
+/* Admonitions */
+.md-typeset .admonition, .md-typeset details {
+  border: 1px solid var(--ink-3) !important;
+  border-left: 3px solid var(--ore) !important;
+  border-radius: 0.5rem; box-shadow: none; font-size: 0.78rem;
+}
+.md-typeset .admonition-title, .md-typeset summary { background: rgba(244, 180, 67, 0.08) !important; color: var(--cream); }
+.md-typeset .admonition-title::before, .md-typeset summary::before { background-color: var(--ore) !important; }
+.md-typeset .admonition.warning, .md-typeset details.warning { border-left-color: var(--ember) !important; }
+.md-typeset .warning > .admonition-title, .md-typeset .warning > summary { background: rgba(242, 131, 111, 0.08) !important; }
+.md-typeset .warning > .admonition-title::before, .md-typeset .warning > summary::before { background-color: var(--ember) !important; }
+.md-typeset .admonition.tip, .md-typeset details.tip { border-left-color: var(--gem) !important; }
+.md-typeset .tip > .admonition-title, .md-typeset .tip > summary { background: rgba(111, 220, 203, 0.08) !important; }
+.md-typeset .tip > .admonition-title::before, .md-typeset .tip > summary::before { background-color: var(--gem) !important; }
+
+/* Diagrams */
+.md-typeset .diagram { margin: 1.5em 0; border-radius: 0.8rem; overflow: hidden; border: 1px solid var(--ink-3); }
+.md-typeset .diagram img { display: block; width: 100%; height: auto; }
+
+/* Footer */
+.md-footer { border-top: 1px solid rgba(244, 180, 67, 0.08); }
+.md-footer__link { color: var(--mist); }
+.md-footer__link:hover { color: var(--ore); }

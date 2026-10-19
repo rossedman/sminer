@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="brand.css">
+<style>
+  body {
+    background:
+      radial-gradient(820px 520px at 50% 18%, rgba(244,180,67,0.16), transparent 70%),
+      radial-gradient(700px 420px at 50% 120%, rgba(111,220,203,0.10), transparent 70%),
+      var(--ink);
+  }
+  .grid { mask-image: radial-gradient(ellipse 70% 70% at 50% 35%, #000 15%, transparent 75%); }
+  .wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; padding-top: 70px; text-align: center; }
+  .logo { width: 132px; height: 132px; filter: drop-shadow(0 18px 30px rgba(0,0,0,0.5)); }
+  h1 { margin-top: 14px; font-size: 104px; font-weight: 800; letter-spacing: -4px; line-height: 1; }
+  h1 span { color: var(--ore); }
+  p { margin-top: 20px; font-size: 30px; line-height: 1.35; color: var(--mist); }
+  p b { color: var(--cream); font-weight: 600; }
+  .chips { margin-top: 44px; display: flex; gap: 14px; }
+  .chip { padding: 10px 18px; border-radius: 999px; font-size: 19px; font-weight: 600; background: var(--ink-2); border: 1px solid var(--ink-3); color: var(--cream); }
+  .chip b { color: var(--ore); font-weight: 700; }
+</style></head>
+<body>
+  <div class="grid"></div>
+  <div class="wrap">
+    <img class="logo" src="../site/logo.svg" alt="">
+    <h1>s<span>miner</span></h1>
+    <p>Find the corrections you keep making to Claude,<br><b>and fix them for good.</b></p>
+    <div class="chips mono">
+      <div class="chip"><b>→</b> hooks</div>
+      <div class="chip"><b>→</b> CLAUDE.md lines</div>
+      <div class="chip"><b>→</b> skills</div>
+      <div class="chip"><b>◆</b> local first</div>
+    </div>
+  </div>
+</body></html>

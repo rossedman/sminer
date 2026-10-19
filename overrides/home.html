@@ -1,0 +1,301 @@
+{#- The landing page. Everything renders in the tabs block, outside Material's
+    content grid, so sections can run edge to edge. -#}
+{% extends "main.html" %}
+
+{% set gh = "https://github.com/rossedman/sminer" %}
+{% set install = "go install github.com/rossedman/sminer/cmd/sminer@latest" %}
+
+{% block tabs %}
+{{ super() }}
+<div class="sm">
+
+  <!-- Hero -->
+  <section class="sm-hero">
+    <div class="sm-grid" aria-hidden="true"></div>
+    <div class="sm-wrap sm-hero__inner">
+      <div>
+        <img class="sm-hero__logo" src="{{ 'assets/site/logo.svg' | url }}" alt="">
+        <h1 class="sm-title">s<span>miner</span></h1>
+        <p class="sm-tagline">Find the corrections you keep making to Claude,<br><b>and fix them for good.</b></p>
+        <div class="sm-install">
+          <span class="sm-install__prompt">$</span>
+          <code>{{ install }}</code>
+          <button class="sm-copy" data-copy="{{ install }}" aria-label="Copy install command">
+            {% include ".icons/material/content-copy.svg" %}
+          </button>
+        </div>
+        <div class="sm-cta">
+          <a class="sm-btn sm-btn--primary" href="{{ 'getting-started/' | url }}">Get started {% include ".icons/material/arrow-right.svg" %}</a>
+          <a class="sm-btn" href="{{ 'how-it-works/' | url }}">{% include ".icons/material/pickaxe.svg" %} How it works</a>
+        </div>
+      </div>
+
+      <div class="sm-term" aria-label="A terminal running sminer">
+        <div class="sm-term__bar"><i></i><i></i><i></i><span>~ zsh</span></div>
+        <div class="sm-term__body" data-typing>
+          <div><span class="p">$</span> <span class="c" data-type>sminer run --offline -o report.md</span></div>
+          <div><span class="d">·</span> ingested <span class="c">4,212</span> lines from 318 sessions</div>
+          <div><span class="d">·</span> finding signals, clustering</div>
+          <div><span class="d">·</span> analyzed: <span class="c">9</span> findings, <span class="ok">3 new</span></div>
+          <div><span class="p">$</span> <span class="c" data-type>sminer finding list</span></div>
+          <div><span class="ok">Fc72cc0</span>  <span class="v">hook     </span>  <span class="c">Never hand-edit lockfiles</span></div>
+          <div><span class="ok">Fcd5b9b</span>  <span class="p">claude_md</span>  <span class="c">Table tests, not testify</span></div>
+          <div><span class="ok">F15ec9e</span>  <span class="e">skill    </span>  <span class="c">Lint and test, then commit</span></div>
+          <div><span class="p">$</span> <span class="c" data-type>sminer finding accept Fc72cc0</span><span class="sm-caret"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="sm-wrap sm-stats">
+      <li><b>&lt;30 s</b><span>for 90 days of transcripts</span></li>
+      <li><b>7</b><span>kinds of friction it detects</span></li>
+      <li><b>~2 KB</b><span>per classifier call, or none</span></li>
+      <li><b>0</b><span>files edited behind your back</span></li>
+    </ul>
+  </section>
+
+  <!-- The problem and the report -->
+  <section class="sm-section" id="report">
+    <div class="sm-wrap sm-split">
+      <div>
+        <p class="sm-eyebrow">The problem</p>
+        <h2>You've said it before.<br><span>It's on disk.</span></h2>
+        <p class="sm-lede">You correct Claude for the same things across repos and weeks: test style, lockfile edits, naming conventions. Each correction costs a turn and some attention, and every one of them is already written down in your session transcripts. Nobody reads them.</p>
+        <p class="sm-lede">sminer reads them. It finds the pushback, interrupts, rewinds and repeated instructions, groups them by the rule underneath, and ranks them by how often they happen and across how many repos.</p>
+        <ul class="sm-points">
+          <li>{% include ".icons/material/magnify-scan.svg" %} Evidence for every finding: counts, repos, excerpts</li>
+          <li>{% include ".icons/material/target.svg" %} One finding per rule, with an ID that survives re-runs</li>
+          <li>{% include ".icons/material/file-compare.svg" %} A patch for each fix, never applied for you</li>
+        </ul>
+        <div class="sm-cta">
+          <a class="sm-btn sm-btn--primary" href="{{ 'findings/' | url }}">Findings and remedies {% include ".icons/material/arrow-right.svg" %}</a>
+          <a class="sm-btn" href="{{ 'signals/' | url }}">{% include ".icons/material/magnify-scan.svg" %} What it looks for</a>
+        </div>
+      </div>
+      <div class="sm-stack">
+        <article class="sm-finding" aria-label="An example finding from the report">
+          <div class="sm-finding__head">
+            <span class="sm-finding__id">Fc72cc0</span><span class="sm-pill sm-pill--hook">hook</span>
+            <span class="sm-finding__score">score 27</span>
+          </div>
+          <h3>Never hand-edit package-lock.json</h3>
+          <div class="sm-finding__meta">9 occurrences in 7 sessions · 3 repos · Sep 23 – Oct 14</div>
+          <div class="sm-quote">stop editing package-lock.json directly. regenerate it with npm install
+            <small>correction · web · claude --resume b2222222…</small></div>
+          <div class="sm-quote">never hand-edit lockfiles, revert that and run npm install
+            <small>correction · api · claude --resume a4444444…</small></div>
+          <div class="sm-diff"><span class="hdr">PreToolUse on Edit|Write|MultiEdit, block when file_path matches</span>
+<span class="add">  (^|/)package-lock\.json$</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Remedies -->
+  <section class="sm-section sm-section--alt" id="remedies">
+    <div class="sm-wrap">
+      <p class="sm-eyebrow">From friction to fix</p>
+      <h2>The right remedy for each rule.<br><span>Deterministic beats instructed.</span></h2>
+      <p class="sm-lede sm-lede--center">When a rule can be checked mechanically, sminer proposes a hook. When it needs judgment, a CLAUDE.md line. When you keep re-explaining a procedure, a skill. Anything you already have is left out.</p>
+      <div class="sm-remedies">
+        <article class="sm-remedy sm-remedy--hook">
+          <h3>Hook</h3><div class="when">a file path or a command can enforce it</div>
+          <p>A <code>PreToolUse</code> script for your hooks directory, plus the <code>settings.json</code> entry that registers it.</p>
+          <pre><code>if grep -Eq '(^|/)package-lock\.json$'; then
+  echo 'Blocked: run npm install' >&2
+  exit 2
+fi</code></pre>
+        </article>
+        <article class="sm-remedy sm-remedy--md">
+          <h3>CLAUDE.md line</h3><div class="when">judgment or style the model must apply</div>
+          <p>A diff appending the rule to the repo's <code>CLAUDE.md</code>, or the global one when it spans repos.</p>
+          <pre><code> ## Learned conventions
+
++- Write table-driven tests with the
++  standard library, not testify.</code></pre>
+        </article>
+        <article class="sm-remedy sm-remedy--skill">
+          <h3>Skill</h3><div class="when">a procedure you keep re-explaining</div>
+          <p>A draft <code>SKILL.md</code> with the steps you typed out in session after session, ready to edit.</p>
+          <pre><code>---
+name: pre-commit
+description: Before any commit
+---
+1. make lint  2. make test
+3. conventional commit</code></pre>
+        </article>
+      </div>
+      <p class="sm-center"><a class="sm-link" href="{{ 'findings/#remedy-routing' | url }}">How routing works {% include ".icons/material/arrow-right.svg" %}</a></p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="sm-section">
+    <div class="sm-wrap">
+      <p class="sm-eyebrow">Why sminer</p>
+      <h2>Guardrails from evidence,<br><span>not from memory.</span></h2>
+      <div class="sm-features">
+        <article class="sm-card">
+          <div class="sm-card__icon">{% include ".icons/material/magnify-scan.svg" %}</div>
+          <h3>Seven kinds of friction</h3>
+          <p>Corrections, interrupts, rejected tool calls, rewinds, repeated instructions, hook blocks, failure loops and manual fix-ups. Cheap heuristics first; the model only confirms candidates.</p>
+        </article>
+        <article class="sm-card">
+          <div class="sm-card__icon">{% include ".icons/material/shield-lock-outline.svg" %}</div>
+          <h3>Private by default</h3>
+          <p>Secrets are redacted before anything is stored, and transcripts are never copied. <code>--offline</code> keeps everything local; otherwise only about 2 KB per candidate goes to the classifier.</p>
+        </article>
+        <article class="sm-card">
+          <div class="sm-card__icon">{% include ".icons/material/lightning-bolt.svg" %}</div>
+          <h3>Fast and incremental</h3>
+          <p>Each run reads only what's new since the last one. Ninety days of transcripts take well under thirty seconds on a laptop; a repeat run takes a few.</p>
+        </article>
+        <article class="sm-card">
+          <div class="sm-card__icon">{% include ".icons/material/file-document-edit-outline.svg" %}</div>
+          <h3>Proposals, not edits</h3>
+          <p>Accepting a finding writes a patch file. You review it and apply it. sminer never touches your CLAUDE.md, settings or hooks.</p>
+        </article>
+        <article class="sm-card">
+          <div class="sm-card__icon">{% include ".icons/material/chart-line.svg" %}</div>
+          <h3>Proof the fix worked</h3>
+          <p><code>sminer finding trend</code> splits each finding's weekly rate at the day you adopted the fix, so you can see the correction stop happening.</p>
+        </article>
+        <article class="sm-card">
+          <div class="sm-card__icon">{% include ".icons/material/code-json.svg" %}</div>
+          <h3>Made for scripts too</h3>
+          <p><code>--json</code> on every command, data on stdout and logs on stderr, documented exit codes, and shell completion of live finding IDs.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick start -->
+  <section class="sm-section sm-section--alt" id="quick-start">
+    <div class="sm-wrap sm-split">
+      <div>
+        <p class="sm-eyebrow">Quick start</p>
+        <h2>From transcripts to a fix<br><span>in four commands.</span></h2>
+        <p class="sm-lede">sminer is a single Go binary with no cgo and no setup: it finds Claude Code's transcripts in <code>~/.claude/projects</code> on its own. Start offline, then add an API key for sharper results.</p>
+        <a class="sm-btn" href="{{ 'getting-started/' | url }}">{% include ".icons/material/book-open-page-variant-outline.svg" %} Full getting-started guide</a>
+      </div>
+      <ol class="sm-steps">
+        <li>
+          <h4>Install</h4>
+          <pre class="sm-code"><button class="sm-copy" aria-label="Copy">{% include ".icons/material/content-copy.svg" %}</button><code><span class="p">$</span> {{ install }}</code></pre>
+        </li>
+        <li>
+          <h4>Mine your transcripts, offline</h4>
+          <p>Nothing leaves your machine. The report goes to stdout, or a file with <code>-o</code>.</p>
+          <pre class="sm-code"><button class="sm-copy" aria-label="Copy">{% include ".icons/material/content-copy.svg" %}</button><code><span class="p">$</span> sminer run --offline -o report.md</code></pre>
+        </li>
+        <li>
+          <h4>Optional: let the model confirm candidates</h4>
+          <pre class="sm-code"><button class="sm-copy" aria-label="Copy">{% include ".icons/material/content-copy.svg" %}</button><code><span class="p">$</span> export ANTHROPIC_API_KEY=...
+<span class="p">$</span> sminer run -o report.md</code></pre>
+        </li>
+        <li>
+          <h4>Preview a fix, then accept it</h4>
+          <pre class="sm-code"><button class="sm-copy" aria-label="Copy">{% include ".icons/material/content-copy.svg" %}</button><code><span class="p">$</span> sminer finding accept Fc72cc0 --preview
+<span class="p">$</span> sminer finding accept Fc72cc0   <span class="d"># prints the patch path</span></code></pre>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="sm-section">
+    <div class="sm-wrap">
+      <p class="sm-eyebrow">How it works</p>
+      <h2>A batch pipeline on your machine.<br><span>One optional network call.</span></h2>
+      <p class="sm-lede sm-lede--center">Each stage reads from and writes to a local SQLite file, so any stage can be re-run on its own. Only the classifier leaves the machine, and <code>--offline</code> turns it off.</p>
+      <figure class="sm-figure">
+        <img src="{{ 'assets/how-it-works.png' | url }}" alt="Transcripts flow through ingest, signal, classify, cluster, remedy and report, all on your machine around a SQLite store. Only classify calls the Anthropic API, about 2 KB per candidate. Local embeddings feed clustering; your CLAUDE.md, hooks and skills are read to avoid duplicate proposals." loading="lazy">
+      </figure>
+      <p class="sm-center"><a class="sm-link" href="{{ 'how-it-works/' | url }}">Read the stage-by-stage tour {% include ".icons/material/arrow-right.svg" %}</a></p>
+    </div>
+  </section>
+
+  <!-- Commands -->
+  <section class="sm-section sm-section--alt">
+    <div class="sm-wrap">
+      <p class="sm-eyebrow">Commands</p>
+      <h2>A small CLI that<br><span>reads like a sentence.</span></h2>
+      <p class="sm-lede sm-lede--center">Every command has <code>--help</code> with examples, <code>--json</code> for scripts, and errors that tell you what to run next.</p>
+      <div class="sm-cmds">
+        <div class="sm-cmdgroup">
+          <h3>Mining</h3>
+          <dl>
+            <dt>run</dt><dd>Ingest, analyze and print the report</dd>
+            <dt>ingest</dt><dd>Read new transcript lines, redacted</dd>
+            <dt>analyze</dt><dd>Signals, classifier, clusters, remedies</dd>
+            <dt>report</dt><dd>The ranked report, Markdown or JSON</dd>
+          </dl>
+        </div>
+        <div class="sm-cmdgroup">
+          <h3>Findings</h3>
+          <dl>
+            <dt>finding list</dt><dd>Open findings, highest score first</dd>
+            <dt>finding show</dt><dd>The proposal and every excerpt</dd>
+            <dt>finding accept</dt><dd>Write the patch; <code>--preview</code> to look first</dd>
+            <dt>finding dismiss</dt><dd>Hide one that isn't worth fixing</dd>
+            <dt>finding reopen</dt><dd>Undo accept or dismiss</dd>
+            <dt>finding trend</dt><dd>Weekly rate, before and after</dd>
+          </dl>
+        </div>
+        <div class="sm-cmdgroup">
+          <h3>Other</h3>
+          <dl>
+            <dt>config show</dt><dd>Every setting and where it came from</dd>
+            <dt>config path</dt><dd>Where the config file lives</dd>
+            <dt>eval</dt><dd>Score detection on a labelled set</dd>
+            <dt>version</dt><dd>Build info and the command tree</dd>
+            <dt>completion</dt><dd>bash, zsh, fish and PowerShell</dd>
+          </dl>
+        </div>
+      </div>
+      <p class="sm-center"><a class="sm-link" href="{{ 'cli/' | url }}">Full CLI reference {% include ".icons/material/arrow-right.svg" %}</a></p>
+    </div>
+  </section>
+
+  <!-- Docs -->
+  <section class="sm-section">
+    <div class="sm-wrap">
+      <p class="sm-eyebrow">Documentation</p>
+      <h2>Go deeper.</h2>
+      <div class="sm-docs">
+        {% for path, name, blurb in [
+          ("getting-started/", "Getting started", "Install, first run, reading the report"),
+          ("how-it-works/", "How it works", "The pipeline, stage by stage"),
+          ("signals/", "Signals", "The seven kinds of friction"),
+          ("findings/", "Findings and remedies", "Clustering, routing, patches, trends"),
+          ("privacy/", "Privacy and safety", "What's stored and what leaves"),
+          ("cli/", "CLI reference", "Commands, output, exit codes"),
+          ("configuration/", "Configuration", "Flags, environment, config file"),
+          ("troubleshooting/", "Troubleshooting", "When something looks off"),
+        ] %}
+        <a class="sm-doc" href="{{ path | url }}">
+          <b>{{ name }}</b><span>{{ blurb }}</span>
+          {% include ".icons/material/arrow-right.svg" %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Closing call to action -->
+  <section class="sm-final">
+    <div class="sm-grid" aria-hidden="true"></div>
+    <div class="sm-wrap">
+      <img class="sm-final__logo" src="{{ 'assets/site/logo.svg' | url }}" alt="">
+      <h2>Stop repeating yourself.</h2>
+      <p class="sm-lede sm-lede--center">Free and open source under the MIT license.</p>
+      <div class="sm-cta sm-cta--center">
+        <a class="sm-btn sm-btn--primary" href="{{ 'getting-started/' | url }}">Get started {% include ".icons/material/arrow-right.svg" %}</a>
+        <a class="sm-btn" href="{{ gh }}">{% include ".icons/material/source-repository.svg" %} View on GitHub</a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block content %}{% endblock %}

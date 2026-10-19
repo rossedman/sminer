@@ -140,6 +140,10 @@ func Setup(v *viper.Viper) {
 // ErrNoFile is returned when an explicitly named config file is missing.
 var ErrNoFile = errors.New("config file not found")
 
+// ErrInvalid wraps every validation failure, so callers can treat a bad
+// value as a usage error.
+var ErrInvalid = errors.New("invalid configuration")
+
 // Load reads the config file (path, or the default location when empty)
 // into v and returns the resolved configuration and the file actually used
 // ("" when none). A missing default file is fine; a missing named one is not.
@@ -172,15 +176,15 @@ func Load(v *viper.Viper, path string) (Config, string, error) {
 // Validate checks values that would otherwise fail deep in a run.
 func (c Config) Validate() error {
 	if _, err := ParseDuration(c.Window); err != nil {
-		return fmt.Errorf("window: %w", err)
+		return fmt.Errorf("%w: window (--since): %v", ErrInvalid, err)
 	}
 	if c.MinCount < 1 {
-		return fmt.Errorf("min_count must be at least 1, got %d", c.MinCount)
+		return fmt.Errorf("%w: min_count (--min-count) must be at least 1, got %d", ErrInvalid, c.MinCount)
 	}
 	switch c.Embeddings.Provider {
 	case "auto", "ollama", "hash":
 	default:
-		return fmt.Errorf("embeddings.provider must be auto, ollama or hash, got %q", c.Embeddings.Provider)
+		return fmt.Errorf("%w: embeddings.provider must be auto, ollama or hash, got %q", ErrInvalid, c.Embeddings.Provider)
 	}
 	return nil
 }

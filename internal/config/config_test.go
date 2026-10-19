@@ -54,8 +54,8 @@ func TestLoadWithoutFile(t *testing.T) {
 func TestValidate(t *testing.T) {
 	c := Default()
 	c.Window = "soon"
-	if c.Validate() == nil {
-		t.Error("bad window accepted")
+	if err := c.Validate(); !errors.Is(err, ErrInvalid) {
+		t.Errorf("bad window: %v", err)
 	}
 	c = Default()
 	c.Embeddings.Provider = "openai"
