@@ -6,6 +6,7 @@
 package ingest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -104,8 +105,10 @@ type sessionAgg struct {
 	turns             int
 }
 
-// Run ingests every *.jsonl under the roots.
-func Run(st *store.Store, opt Options) (Stats, error) {
+// Run ingests every *.jsonl under the roots. Each file is committed in its
+// own transaction, so cancelling ctx leaves every finished file recorded and
+// the rest to be picked up by the next run.
+func Run(ctx context.Context, st *store.Store, opt Options) (Stats, error) {
 	stats := Stats{UnknownTypes: map[string]int{}, Versions: map[string]int{}}
 	if opt.Now.IsZero() {
 		opt.Now = time.Now()
@@ -180,8 +183,13 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 		}()
 	}
 	go func() {
+	feed:
 		for _, j := range jobs {
-			in <- j
+			select {
+			case in <- j:
+			case <-ctx.Done():
+				break feed
+			}
 		}
 		close(in)
 		wg.Wait()
@@ -196,6 +204,9 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 				firstErr = fmt.Errorf("%s: %w", r.job.path, r.err)
 			}
 			continue
+		}
+		if firstErr == nil && ctx.Err() != nil {
+			firstErr = ctx.Err()
 		}
 		if firstErr != nil {
 			continue
@@ -221,6 +232,9 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 		}
 	}
 	stats.Sessions = len(sessions)
+	if firstErr == nil {
+		firstErr = ctx.Err()
+	}
 	return stats, firstErr
 }
 

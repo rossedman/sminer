@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,7 +53,7 @@ func open(t *testing.T) *store.Store {
 func runIngest(t *testing.T, st *store.Store, root string, cfg config.Config) Stats {
 	t.Helper()
 	red, _ := redact.New(nil)
-	stats, err := Run(st, Options{Roots: []string{root}, Since: 90 * 24 * time.Hour, Now: now, Config: cfg, Redact: red})
+	stats, err := Run(context.Background(), st, Options{Roots: []string{root}, Since: 90 * 24 * time.Hour, Now: now, Config: cfg, Redact: red})
 	if err != nil {
 		t.Fatal(err)
 	}

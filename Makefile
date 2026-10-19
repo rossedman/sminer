@@ -1,7 +1,11 @@
 .PHONY: build test check fmt vet cover fuzz eval fixtures
 
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+COMMIT  ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null)
+LDFLAGS := -X github.com/rossedman/sminer/internal/version.Version=$(VERSION) -X github.com/rossedman/sminer/internal/version.Commit=$(COMMIT)
+
 build:
-	go build -o sminer ./cmd/sminer
+	go build -ldflags "$(LDFLAGS)" -o sminer ./cmd/sminer
 
 test:
 	go test ./...

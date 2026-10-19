@@ -1,4 +1,9 @@
-// Package config loads ~/.config/sminer/config.yaml.
+// Package config resolves sminer's settings.
+//
+// Precedence, highest first: command-line flags, SMINER_* environment
+// variables, the config file, built-in defaults. The file lives at
+// $XDG_CONFIG_HOME/sminer/config.yaml (default ~/.config/sminer/config.yaml)
+// and is optional: sminer runs with no configuration at all.
 package config
 
 import (
@@ -10,96 +15,191 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/spf13/viper"
 )
 
-// Config mirrors config.yaml. Every field has a usable default.
+// EnvPrefix is the prefix of every environment variable sminer reads:
+// classifier.model becomes SMINER_CLASSIFIER_MODEL.
+const EnvPrefix = "SMINER"
+
+// Config is the resolved configuration.
 type Config struct {
-	Roots        []string   `yaml:"roots"`
-	Window       string     `yaml:"window"`
-	ExcludeRepos []string   `yaml:"exclude_repos"`
-	Classifier   Classifier `yaml:"classifier"`
-	Embeddings   Embeddings `yaml:"embeddings"`
-	Cluster      Cluster    `yaml:"cluster"`
-	Redact       Redact     `yaml:"redact"`
-	Remedies     Remedies   `yaml:"remedies"`
-	DB           string     `yaml:"db"`
-	PatchDir     string     `yaml:"patch_dir"`
+	Roots        []string   `mapstructure:"roots" json:"roots"`
+	Window       string     `mapstructure:"window" json:"window"`
+	MinCount     int        `mapstructure:"min_count" json:"min_count"`
+	Offline      bool       `mapstructure:"offline" json:"offline"`
+	ExcludeRepos []string   `mapstructure:"exclude_repos" json:"exclude_repos"`
+	Classifier   Classifier `mapstructure:"classifier" json:"classifier"`
+	Embeddings   Embeddings `mapstructure:"embeddings" json:"embeddings"`
+	Cluster      Cluster    `mapstructure:"cluster" json:"cluster"`
+	Redact       Redact     `mapstructure:"redact" json:"redact"`
+	Remedies     Remedies   `mapstructure:"remedies" json:"remedies"`
+	DB           string     `mapstructure:"db" json:"db"`
+	PatchDir     string     `mapstructure:"patch_dir" json:"patch_dir"`
 }
 
 type Classifier struct {
-	Model          string `yaml:"model"`
-	MaxCallsPerRun int    `yaml:"max_calls_per_run"`
-	Concurrency    int    `yaml:"concurrency"`
+	Model          string `mapstructure:"model" json:"model"`
+	MaxCallsPerRun int    `mapstructure:"max_calls_per_run" json:"max_calls_per_run"`
+	Concurrency    int    `mapstructure:"concurrency" json:"concurrency"`
 }
 
 type Embeddings struct {
 	// Provider is "auto" (ollama if reachable, else hash), "ollama" or "hash".
-	Provider string `yaml:"provider"`
-	Model    string `yaml:"model"`
-	URL      string `yaml:"url"`
+	Provider string `mapstructure:"provider" json:"provider"`
+	Model    string `mapstructure:"model" json:"model"`
+	URL      string `mapstructure:"url" json:"url"`
 }
 
 type Cluster struct {
 	// Threshold is the cosine similarity needed to join a cluster.
 	// Zero means the embedder's default.
-	Threshold float64 `yaml:"threshold"`
+	Threshold float64 `mapstructure:"threshold" json:"threshold"`
 }
 
 type Redact struct {
-	Patterns []string `yaml:"patterns"`
+	Patterns []string `mapstructure:"patterns" json:"patterns"`
 }
 
 type Remedies struct {
-	HooksDir       string `yaml:"hooks_dir"`
-	GlobalClaudeMD string `yaml:"global_claude_md"`
-	SkillsDir      string `yaml:"skills_dir"`
-	Settings       string `yaml:"settings"`
+	HooksDir       string `mapstructure:"hooks_dir" json:"hooks_dir"`
+	GlobalClaudeMD string `mapstructure:"global_claude_md" json:"global_claude_md"`
+	SkillsDir      string `mapstructure:"skills_dir" json:"skills_dir"`
+	Settings       string `mapstructure:"settings" json:"settings"`
 }
 
-// Default returns the built-in configuration.
-func Default() Config {
-	return Config{
-		Roots:      []string{"~/.claude/projects"},
-		Window:     "90d",
-		Classifier: Classifier{Model: "claude-haiku-5-5", MaxCallsPerRun: 500, Concurrency: 4},
-		Embeddings: Embeddings{Provider: "auto", Model: "nomic-embed-text", URL: "http://localhost:11434"},
-		Remedies: Remedies{
-			HooksDir:       "~/src/claude-hooks",
-			GlobalClaudeMD: "~/.claude/CLAUDE.md",
-			SkillsDir:      "~/.claude/skills",
-			Settings:       "~/.claude/settings.json",
-		},
-		DB:       "~/.local/share/sminer/sminer.db",
-		PatchDir: "~/.local/share/sminer/patches",
+// defaults are the built-in values, keyed as in the config file.
+func defaults() map[string]any {
+	return map[string]any{
+		"roots":                        []string{"~/.claude/projects"},
+		"window":                       "90d",
+		"min_count":                    3,
+		"offline":                      false,
+		"exclude_repos":                []string{},
+		"classifier.model":             "claude-haiku-5-5",
+		"classifier.max_calls_per_run": 500,
+		"classifier.concurrency":       4,
+		"embeddings.provider":          "auto",
+		"embeddings.model":             "nomic-embed-text",
+		"embeddings.url":               "http://localhost:11434",
+		"cluster.threshold":            0.0,
+		"redact.patterns":              []string{},
+		"remedies.hooks_dir":           "~/src/claude-hooks",
+		"remedies.global_claude_md":    "~/.claude/CLAUDE.md",
+		"remedies.skills_dir":          "~/.claude/skills",
+		"remedies.settings":            "~/.claude/settings.json",
+		"db":                           filepath.Join(DataDir(), "sminer.db"),
+		"patch_dir":                    filepath.Join(DataDir(), "patches"),
 	}
 }
 
-// DefaultPath is where Load looks when no path is given.
-func DefaultPath() string { return Expand("~/.config/sminer/config.yaml") }
-
-// Load reads path over the defaults. A missing file at the default path is
-// not an error; a missing explicit path is.
-func Load(path string) (Config, error) {
-	cfg := Default()
-	explicit := path != ""
-	if !explicit {
-		path = DefaultPath()
+// Keys lists every configuration key in a stable order.
+func Keys() []string {
+	return []string{
+		"roots", "window", "min_count", "offline", "exclude_repos",
+		"classifier.model", "classifier.max_calls_per_run", "classifier.concurrency",
+		"embeddings.provider", "embeddings.model", "embeddings.url",
+		"cluster.threshold", "redact.patterns",
+		"remedies.hooks_dir", "remedies.global_claude_md", "remedies.skills_dir", "remedies.settings",
+		"db", "patch_dir",
 	}
-	b, err := os.ReadFile(Expand(path))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) && !explicit {
-			return cfg, nil
+}
+
+// EnvVar is the environment variable that sets key.
+func EnvVar(key string) string {
+	return EnvPrefix + "_" + strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+}
+
+// ConfigDir is $XDG_CONFIG_HOME/sminer, defaulting to ~/.config/sminer.
+func ConfigDir() string { return xdg("XDG_CONFIG_HOME", ".config") }
+
+// DataDir is $XDG_DATA_HOME/sminer, defaulting to ~/.local/share/sminer.
+func DataDir() string { return xdg("XDG_DATA_HOME", ".local/share") }
+
+func xdg(env, fallback string) string {
+	if d := os.Getenv(env); d != "" && filepath.IsAbs(d) {
+		return filepath.Join(d, "sminer")
+	}
+	return filepath.Join(Expand("~"), fallback, "sminer")
+}
+
+// DefaultFile is the config file read when none is named.
+func DefaultFile() string { return filepath.Join(ConfigDir(), "config.yaml") }
+
+// Setup prepares v with defaults and environment binding. Call it before
+// binding flags and before Load.
+func Setup(v *viper.Viper) {
+	for k, val := range defaults() {
+		v.SetDefault(k, val)
+	}
+	v.SetEnvPrefix(EnvPrefix)
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+}
+
+// ErrNoFile is returned when an explicitly named config file is missing.
+var ErrNoFile = errors.New("config file not found")
+
+// Load reads the config file (path, or the default location when empty)
+// into v and returns the resolved configuration and the file actually used
+// ("" when none). A missing default file is fine; a missing named one is not.
+func Load(v *viper.Viper, path string) (Config, string, error) {
+	file := path
+	if file == "" {
+		file = DefaultFile()
+	}
+	file = Expand(file)
+	used := ""
+	if _, err := os.Stat(file); err == nil {
+		v.SetConfigFile(file)
+		if err := v.ReadInConfig(); err != nil {
+			return Config{}, "", fmt.Errorf("read %s: %w", file, err)
 		}
-		return cfg, err
+		used = file
+	} else if path != "" {
+		return Config{}, "", fmt.Errorf("%w: %s", ErrNoFile, file)
 	}
-	if err := yaml.Unmarshal(b, &cfg); err != nil {
-		return cfg, fmt.Errorf("parse %s: %w", path, err)
+	var c Config
+	if err := v.Unmarshal(&c); err != nil {
+		return Config{}, "", fmt.Errorf("parse config: %w", err)
 	}
-	if _, err := ParseDuration(cfg.Window); err != nil {
-		return cfg, fmt.Errorf("window: %w", err)
+	if err := c.Validate(); err != nil {
+		return Config{}, "", err
 	}
-	return cfg, nil
+	return c, used, nil
+}
+
+// Validate checks values that would otherwise fail deep in a run.
+func (c Config) Validate() error {
+	if _, err := ParseDuration(c.Window); err != nil {
+		return fmt.Errorf("window: %w", err)
+	}
+	if c.MinCount < 1 {
+		return fmt.Errorf("min_count must be at least 1, got %d", c.MinCount)
+	}
+	switch c.Embeddings.Provider {
+	case "auto", "ollama", "hash":
+	default:
+		return fmt.Errorf("embeddings.provider must be auto, ollama or hash, got %q", c.Embeddings.Provider)
+	}
+	return nil
+}
+
+// Default is the configuration with nothing set.
+func Default() Config {
+	v := viper.New()
+	for k, val := range defaults() {
+		v.SetDefault(k, val)
+	}
+	var c Config
+	_ = v.Unmarshal(&c)
+	return c
+}
+
+// WindowDuration is Window parsed.
+func (c Config) WindowDuration() time.Duration {
+	d, _ := ParseDuration(c.Window)
+	return d
 }
 
 // Expand replaces a leading ~ with the home directory.
@@ -122,7 +222,7 @@ func ParseDuration(s string) (time.Duration, error) {
 	if unit == 'd' || unit == 'w' {
 		n, err := strconv.Atoi(s[:len(s)-1])
 		if err != nil || n < 0 {
-			return 0, fmt.Errorf("bad duration %q", s)
+			return 0, fmt.Errorf("bad duration %q (want e.g. 90d, 2w, 12h)", s)
 		}
 		d := time.Duration(n) * 24 * time.Hour
 		if unit == 'w' {
@@ -130,7 +230,11 @@ func ParseDuration(s string) (time.Duration, error) {
 		}
 		return d, nil
 	}
-	return time.ParseDuration(s)
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 0, fmt.Errorf("bad duration %q (want e.g. 90d, 2w, 12h)", s)
+	}
+	return d, nil
 }
 
 // RepoExcluded reports whether repo matches any exclude_repos glob. A pattern
@@ -143,7 +247,7 @@ func (c Config) RepoExcluded(repo string) bool {
 			if ok, _ := filepath.Match(pat, p); ok {
 				return true
 			}
-			if p == "/" || p == "." || p == filepath.Dir(p) {
+			if p == filepath.Dir(p) {
 				break
 			}
 		}

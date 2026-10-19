@@ -11,6 +11,13 @@ import (
 	"github.com/rossedman/sminer/internal/store"
 )
 
+// Errors returned by BuildPatch. All are preconditions the user can fix.
+var (
+	ErrNotPatchable = errors.New("nothing to patch")
+	ErrNoRemedy     = errors.New("no remedy yet")
+	ErrTargetExists = errors.New("target already exists")
+)
+
 // Section heading sminer appends CLAUDE.md lines under.
 const mdSection = "## Learned conventions"
 
@@ -34,9 +41,9 @@ func BuildPatch(f store.Finding, cfg config.Config) (Patch, error) {
 	case Skill:
 		return skillPatch(f, p)
 	case Ignore:
-		return Patch{}, fmt.Errorf("finding %s is routed to ignore (%s); nothing to patch", f.ID, p.Why)
+		return Patch{}, fmt.Errorf("%w: finding %s is routed to ignore (%s)", ErrNotPatchable, f.ID, p.Why)
 	}
-	return Patch{}, fmt.Errorf("finding %s has no remedy yet; run sminer analyze", f.ID)
+	return Patch{}, fmt.Errorf("%w: finding %s has no remedy yet", ErrNoRemedy, f.ID)
 }
 
 func header(f store.Finding, base string, extra string) string {
@@ -54,7 +61,7 @@ func header(f store.Finding, base string, extra string) string {
 func claudeMDPatch(f store.Finding, p Proposal) (Patch, error) {
 	path := f.Target
 	if path == "" {
-		return Patch{}, errors.New("no target CLAUDE.md")
+		return Patch{}, fmt.Errorf("%w: finding %s has no target file", ErrNoRemedy, f.ID)
 	}
 	base := baseFor(path)
 	rel, _ := filepath.Rel(base, path)
@@ -80,7 +87,7 @@ func hookPatch(f store.Finding, p Proposal, cfg config.Config) (Patch, error) {
 	path := f.Target
 	base := filepath.Dir(path)
 	if fileExists(path) {
-		return Patch{}, fmt.Errorf("%s already exists", path)
+		return Patch{}, fmt.Errorf("%w: %s", ErrTargetExists, path)
 	}
 	what := map[string]string{"file_path": "edits to files matching", "command": "shell commands matching"}[p.Field]
 	script := strings.NewReplacer(
@@ -104,7 +111,7 @@ func hookPatch(f store.Finding, p Proposal, cfg config.Config) (Patch, error) {
 func skillPatch(f store.Finding, p Proposal) (Patch, error) {
 	path := f.Target
 	if fileExists(path) {
-		return Patch{}, fmt.Errorf("%s already exists", path)
+		return Patch{}, fmt.Errorf("%w: %s", ErrTargetExists, path)
 	}
 	base := filepath.Dir(filepath.Dir(path))
 	var sb strings.Builder

@@ -11,19 +11,19 @@ import (
 
 // Week is one bucket of a trend.
 type Week struct {
-	Start time.Time
-	Count int
+	Start time.Time `json:"start"`
+	Count int       `json:"count"`
 }
 
 // Trend is a finding's weekly rate, split at adoption when there is one.
 type Trend struct {
-	ID         string
-	Title      string
-	Weeks      []Week
-	AdoptedAt  *time.Time
-	BeforeRate float64 // occurrences per week before adoption (or overall)
-	AfterRate  float64
-	AfterWeeks float64
+	ID         string     `json:"id"`
+	Title      string     `json:"title"`
+	Weeks      []Week     `json:"weeks"`
+	AdoptedAt  *time.Time `json:"adopted_at,omitempty"`
+	BeforeRate float64    `json:"before_per_week"` // occurrences per week before adoption (or overall)
+	AfterRate  float64    `json:"after_per_week"`
+	AfterWeeks float64    `json:"after_weeks"`
 }
 
 func weekStart(t time.Time) time.Time {

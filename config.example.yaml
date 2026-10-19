@@ -1,10 +1,19 @@
-# Copy to ~/.config/sminer/config.yaml. Every key is optional.
+# Copy to $XDG_CONFIG_HOME/sminer/config.yaml (default ~/.config/sminer/config.yaml).
+# Every key is optional and can also be set by flag or environment variable:
+# classifier.model is SMINER_CLASSIFIER_MODEL. Run `sminer config show` to see
+# the effective values and where each one came from.
 
 # Where Claude Code keeps per-session JSONL transcripts.
 roots: [~/.claude/projects]
 
-# How far back to ingest and analyze.
+# How far back to ingest and analyze (--since).
 window: 90d
+
+# Occurrences a finding needs to be reported (--min-count).
+min_count: 3
+
+# Never call the network: no classifier, no proposal drafting (--offline).
+offline: false
 
 # Repos never ingested (globs; a pattern also matches subdirectories).
 exclude_repos: ["~/personal/*"]
@@ -37,5 +46,6 @@ remedies:
   skills_dir: ~/.claude/skills
   settings: ~/.claude/settings.json
 
-db: ~/.local/share/sminer/sminer.db
-patch_dir: ~/.local/share/sminer/patches
+# Defaults live under $XDG_DATA_HOME/sminer (~/.local/share/sminer).
+# db: ~/.local/share/sminer/sminer.db
+# patch_dir: ~/.local/share/sminer/patches
