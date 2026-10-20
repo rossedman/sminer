@@ -529,7 +529,7 @@ func (x *extractor) extract(ev transcript.Event) []store.Turn {
 				t.ToolKey = x.clean(key, maxToolKey)
 				t.Text = x.clean(summary, maxOtherText)
 				out = append(out, t)
-				if isWriteTool(b.ToolName) && b.ToolUseID != "" {
+				if (isWriteTool(b.ToolName) || b.ToolName == "Bash") && b.ToolUseID != "" {
 					x.pending[b.ToolUseID] = pendingWrite{tool: b.ToolName, input: b.Input}
 				}
 			}
@@ -616,6 +616,20 @@ type editInput struct {
 func (x *extractor) trackFixup(ev transcript.Event, b transcript.Block) (string, bool) {
 	if pw, ok := x.pending[b.ToolUseID]; ok {
 		delete(x.pending, b.ToolUseID)
+		if pw.tool == "Bash" {
+			// A failed command may still have written before it failed.
+			var in struct {
+				Command string `json:"command"`
+			}
+			if json.Unmarshal(pw.input, &in) == nil {
+				for p := range x.fixups {
+					if BashMayWrite(in.Command, p) {
+						delete(x.fixups, p)
+					}
+				}
+			}
+			return "", false
+		}
 		if b.IsError {
 			return "", false
 		}
@@ -678,6 +692,55 @@ func (x *extractor) trackFixup(ev transcript.Event, b transcript.Block) (string,
 		return r.File.FilePath, true
 	}
 	return "", false
+}
+
+// rewriteRe matches commands that rewrite files they may not name: in-place
+// formatters and fixers, and git operations that touch the working tree.
+var rewriteRe = regexp.MustCompile(`(?:^|[\s;&|(` + "`" + `])(?:` +
+	`(?:gofmt|goimports|gofumpt|shfmt)\s[^;&|]*-[a-z]*w|go\s+fmt|golangci-lint\s[^;&|]*--fix|` +
+	`prettier\s[^;&|]*(?:--write|-w\b)|eslint\s[^;&|]*--fix|biome\s+(?:format|check)\s[^;&|]*--write|` +
+	`(?:sed|perl)\s[^;&|]*-[a-zA-Z]*i|clang-format\s[^;&|]*-i|autopep8\s[^;&|]*-i|` +
+	`black|isort|ruff\s+(?:format|check\s[^;&|]*--fix)|rustfmt|cargo\s+(?:fmt|clippy\s[^;&|]*--fix)|` +
+	`terraform\s+fmt|swiftformat|(?:npm|pnpm|yarn)\s+(?:run\s+)?(?:format|fmt|lint:fix)|make\s+(?:fmt|format)|` +
+	`git\s+(?:checkout|restore|reset\s[^;&|]*--hard|stash|apply|am|merge|rebase|pull|cherry-pick|revert)|patch)\b`)
+
+// BashMayWrite reports whether a shell command plausibly rewrote path: it
+// names the file, or runs a rewriting tool over a directory holding it. It
+// errs towards yes, since missing a fix-up is cheaper than blaming the user
+// for Claude's own edit.
+func BashMayWrite(cmd, path string) bool {
+	if cmd == "" || path == "" {
+		return false
+	}
+	if strings.Contains(cmd, path) {
+		return true
+	}
+	if base := filepath.Base(path); base != "." && base != "/" && strings.Contains(cmd, base) {
+		return true
+	}
+	if !rewriteRe.MatchString(cmd) {
+		return false
+	}
+	dir := "/" + strings.Trim(filepath.ToSlash(filepath.Dir(path)), "/") + "/"
+	targets := 0
+	for _, f := range strings.Fields(cmd) {
+		f = strings.Trim(f, `"'();`)
+		if strings.HasPrefix(f, "-") || strings.ContainsAny(f, "<>=$") ||
+			!(strings.Contains(f, "/") || strings.HasPrefix(f, ".") || strings.ContainsAny(f, "*?[")) {
+			continue
+		}
+		targets++
+		if k := strings.IndexAny(f, "*?["); k >= 0 {
+			f = f[:k]
+		}
+		f = strings.TrimSuffix(f, "...")
+		f = strings.Trim(strings.TrimPrefix(f, "./"), "/")
+		if f == "" || f == "." || strings.HasPrefix(f, "..") || strings.Contains(dir, "/"+f+"/") {
+			return true
+		}
+	}
+	// No path arguments: the tool runs over the working directory.
+	return targets == 0
 }
 
 func (f *fileState) apply(old, new string, all bool) {

@@ -2,6 +2,8 @@ package ingest
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -188,5 +190,84 @@ func TestDBPermissions(t *testing.T) {
 	}
 	if info.Mode().Perm() != 0o600 {
 		t.Errorf("db mode = %v, want 0600", info.Mode().Perm())
+	}
+}
+
+// fixupSession writes a one-session transcript from steps of the form
+// {"write", path, content}, {"bash", command} and {"read", path, content},
+// ingests it and returns the number of fix-up turns.
+func fixupSession(t *testing.T, steps ...[]string) int {
+	t.Helper()
+	root := t.TempDir()
+	dir := filepath.Join(root, "-work-api")
+	os.MkdirAll(dir, 0o755)
+	const sid = "f0000000-0000-4000-8000-000000000001"
+	var b strings.Builder
+	ts := time.Date(2026, 10, 18, 9, 0, 0, 0, time.UTC)
+	line := func(typ, uuid string, msg, result any) {
+		ev := map[string]any{"type": typ, "uuid": uuid, "sessionId": sid, "cwd": "/work/api", "version": "2.0.14",
+			"timestamp": ts.Format(time.RFC3339Nano), "message": msg}
+		if result != nil {
+			ev["toolUseResult"] = result
+		}
+		ts = ts.Add(time.Second)
+		j, _ := json.Marshal(ev)
+		b.Write(j)
+		b.WriteByte('\n')
+	}
+	for i, s := range steps {
+		id := fmt.Sprintf("toolu_%d", i)
+		var name string
+		var input map[string]any
+		var result any
+		switch s[0] {
+		case "write":
+			name, input = "Write", map[string]any{"file_path": s[1], "content": s[2]}
+		case "bash":
+			name, input = "Bash", map[string]any{"command": s[1]}
+		case "read":
+			n := strings.Count(s[2], "\n")
+			name, input = "Read", map[string]any{"file_path": s[1]}
+			result = map[string]any{"type": "text", "file": map[string]any{"filePath": s[1], "content": s[2], "numLines": n, "startLine": 1, "totalLines": n}}
+		}
+		line("assistant", fmt.Sprintf("a-%d", i), map[string]any{"role": "assistant", "content": []any{
+			map[string]any{"type": "tool_use", "id": id, "name": name, "input": input}}}, nil)
+		line("user", fmt.Sprintf("u-%d", i), map[string]any{"role": "user", "content": []any{
+			map[string]any{"type": "tool_result", "tool_use_id": id, "content": "ok", "is_error": false}}}, result)
+	}
+	path := filepath.Join(dir, sid+".jsonl")
+	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	os.Chtimes(path, now, now)
+	st := open(t)
+	runIngest(t, st, root, config.Default())
+	return count(t, st, `SELECT COUNT(*) FROM turns WHERE kind=?`, KindFixup)
+}
+
+func TestFixupBashWrites(t *testing.T) {
+	const p = "/work/api/internal/cluster/cluster.go"
+	orig := "package cluster\n\nfunc A() int { return 1 }\n"
+	changed := "package cluster\n\nfunc A() int { return 2 }\n"
+	tests := []struct {
+		name  string
+		steps [][]string
+		want  int
+	}{
+		{"sed -i on the file", [][]string{{"write", p, orig}, {"bash", `sed -i '' 's/return 1/return 2/' internal/cluster/cluster.go`}, {"read", p, changed}}, 0},
+		{"python heredoc names the file", [][]string{{"write", p, orig}, {"bash", "python3 - <<'EOF'\np='internal/cluster/cluster.go'\nopen(p,'w').write(s)\nEOF"}, {"read", p, changed}}, 0},
+		{"gofmt -w ./...", [][]string{{"write", p, orig}, {"bash", "gofmt -w ./..."}, {"read", p, changed}}, 0},
+		{"gofmt -w over a parent dir", [][]string{{"write", p, orig}, {"bash", "gofmt -l -w internal/"}, {"read", p, changed}}, 0},
+		{"rewrite after re-baseline", [][]string{{"write", p, orig}, {"bash", "gofmt -w ."}, {"read", p, changed}, {"read", p, orig}}, 1},
+		{"unrelated bash", [][]string{{"write", p, orig}, {"bash", "go test ./..."}, {"read", p, changed}}, 1},
+		{"formatter over another dir", [][]string{{"write", p, orig}, {"bash", "gofmt -w cmd/"}, {"read", p, changed}}, 1},
+		{"sed -i on another file", [][]string{{"write", p, orig}, {"bash", `sed -i '' 's/a/b/' main.go`}, {"read", p, changed}}, 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := fixupSession(t, tt.steps...); got != tt.want {
+				t.Errorf("fix-ups = %d, want %d", got, tt.want)
+			}
+		})
 	}
 }

@@ -32,6 +32,10 @@ func NeedsClassifier(s store.Signal) bool {
 
 const interruptedPrefix = "(interrupted) "
 
+// DetectorVersion changes whenever Detect would produce different signals
+// from the same turns; Run then re-detects every session.
+const DetectorVersion = "3"
+
 // Detect runs the per-session detectors over one session's turns.
 func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 	var out []store.Signal
@@ -58,6 +62,10 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 	var failCmd string
 	var failStreak int
 	var failEmitted bool
+	// Files Claude wrote or read, and whether a later Bash command may have
+	// rewritten them. Turns ingested before trackFixup knew about Bash
+	// still carry fix-ups for those changes.
+	bashTouched := map[string]bool{}
 
 	prevKind := ""
 	for i, t := range turns {
@@ -72,6 +80,20 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			actions = append(actions, t)
 			if t.ToolUseID != "" {
 				tools[t.ToolUseID] = t
+			}
+			switch t.ToolName {
+			case "Write":
+				bashTouched[t.ToolKey] = false
+			case "Edit", "MultiEdit", "Read":
+				if _, ok := bashTouched[t.ToolKey]; !ok {
+					bashTouched[t.ToolKey] = false
+				}
+			case "Bash":
+				for p := range bashTouched {
+					if ingest.BashMayWrite(t.ToolKey, p) {
+						bashTouched[p] = true
+					}
+				}
 			}
 		case ingest.KindAssistantText:
 			actions = append(actions, t)
@@ -146,6 +168,10 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			}
 			actions = nil
 		case ingest.KindFixup:
+			if bashTouched[t.ToolKey] {
+				bashTouched[t.ToolKey] = false
+				continue
+			}
 			key := FileKey(t.ToolKey)
 			emit(t, store.ManualFixup, store.Low, fmt.Sprintf("%s changed outside Claude right after Claude edited it", t.ToolKey), "", key)
 		}
@@ -240,6 +266,14 @@ func Run(ctx context.Context, st *store.Store, opt Options) (Stats, error) {
 	sessions, err := st.Sessions()
 	if err != nil {
 		return stats, err
+	}
+	if st.Meta("detector_version") != DetectorVersion {
+		if _, err := st.DB.Exec(`UPDATE sessions SET dirty=1`); err != nil {
+			return stats, err
+		}
+		if err := st.SetMeta("detector_version", DetectorVersion); err != nil {
+			return stats, err
+		}
 	}
 	rows, err := st.DB.Query(`SELECT session_id FROM sessions WHERE dirty=1`)
 	if err != nil {
