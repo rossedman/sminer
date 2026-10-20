@@ -26,7 +26,7 @@ type Trend struct {
 	AfterWeeks float64    `json:"after_weeks"`
 }
 
-func weekStart(t time.Time) time.Time {
+func WeekStart(t time.Time) time.Time {
 	t = t.UTC().Truncate(24 * time.Hour)
 	wd := (int(t.Weekday()) + 6) % 7 // Monday = 0
 	return t.AddDate(0, 0, -wd)
@@ -49,8 +49,8 @@ func ComputeTrend(st *store.Store, id string, now time.Time) (Trend, error) {
 	if len(sigs) == 0 {
 		return tr, nil
 	}
-	start := weekStart(sigs[0].TS)
-	end := weekStart(now)
+	start := WeekStart(sigs[0].TS)
+	end := WeekStart(now)
 	idx := map[time.Time]int{}
 	for w := start; !w.After(end); w = w.AddDate(0, 0, 7) {
 		idx[w] = len(tr.Weeks)
@@ -58,7 +58,7 @@ func ComputeTrend(st *store.Store, id string, now time.Time) (Trend, error) {
 	}
 	var before, after int
 	for _, s := range sigs {
-		if i, ok := idx[weekStart(s.TS)]; ok {
+		if i, ok := idx[WeekStart(s.TS)]; ok {
 			tr.Weeks[i].Count++
 		}
 		if tr.AdoptedAt != nil && !s.TS.Before(*tr.AdoptedAt) {
@@ -110,7 +110,7 @@ func WriteTrend(w io.Writer, tr Trend) {
 	fmt.Fprintf(w, "%s  %s\n\n", tr.ID, tr.Title)
 	for _, wk := range tr.Weeks {
 		mark := ""
-		if tr.AdoptedAt != nil && weekStart(*tr.AdoptedAt).Equal(wk.Start) {
+		if tr.AdoptedAt != nil && WeekStart(*tr.AdoptedAt).Equal(wk.Start) {
 			mark = "  <- adopted " + tr.AdoptedAt.Format("2006-01-02")
 		}
 		fmt.Fprintf(w, "  %s  %3d %s%s\n", wk.Start.Format("2006-01-02"), wk.Count, strings.Repeat("#", wk.Count), mark)

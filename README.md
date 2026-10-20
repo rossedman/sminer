@@ -21,6 +21,10 @@ It never edits CLAUDE.md, settings or hooks itself. Its output is a ranked repor
 - **Proof it worked.** `sminer finding trend` splits each finding's weekly rate at the day you adopted the fix.
 
 <p align="center">
+  <img src="docs/assets/terminal/show.png" alt="sminer finding show: a finding as a card in the terminal, with its proposed hook and the corrections behind it." width="100%">
+</p>
+
+<p align="center">
   <img src="docs/assets/how-it-works.png" alt="How sminer works: transcripts flow through ingest, signal, classify, cluster, remedy and report on your machine; only classify calls the Anthropic API." width="100%">
 </p>
 
@@ -90,8 +94,8 @@ Global flags
 
 - stdout carries only data: reports, JSON, patch paths. Progress, warnings and errors go to stderr, so `sminer run > report.md` and pipes work as you'd expect. `-q` silences stderr except for errors; `-v` adds detail.
 - `--json` works on every command that returns data, and errors are JSON too (on stderr): `{"error": {"code": "not_found", "exit": 4, "message": "...", "hint": "..."}}`. JSON fields are only ever added, never renamed or removed.
-- Plain lists are line-oriented, one record per line, and print a header only on a terminal. An empty result prints nothing and exits 0.
-- Color only decorates text that already says the same thing. It is off when output isn't a terminal, with `NO_COLOR`, with `TERM=dumb`, and with `--no-color`.
+- On a terminal, output is drawn with [Charm](https://charm.sh)'s libraries: tables with score bars, finding cards, rendered reports, colored diffs, spinners, a full-screen labeller and styled help. Piped, every command prints a plain, line-oriented form instead: one record per line, no header. An empty result prints nothing and exits 0.
+- Color only decorates text that already says the same thing. It is off when output isn't a terminal, with `NO_COLOR`, with `TERM=dumb`, and with `--no-color`. sminer assumes a dark background unless `COLORFGBG` says otherwise.
 - Shell completion covers commands, flags and live finding IDs: `source <(sminer completion zsh)`.
 
 | Exit code | Meaning |

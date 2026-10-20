@@ -12,7 +12,9 @@ import (
 	"github.com/rossedman/sminer/internal/config"
 	"github.com/rossedman/sminer/internal/fsutil"
 	"github.com/rossedman/sminer/internal/pipeline"
+	"github.com/rossedman/sminer/internal/remedy"
 	"github.com/rossedman/sminer/internal/report"
+	"github.com/rossedman/sminer/internal/ui"
 )
 
 // scopeFlags are shared by run, analyze and report.
@@ -202,6 +204,21 @@ func (a *app) emitReport(r report.Report, output string) error {
 		return report.WriteMarkdown(w, r)
 	}
 	if output == "" || output == "-" {
+		if a.fancyOut() && !a.g.json {
+			// A person is reading: render the Markdown instead of
+			// printing its source. Piped, it stays Markdown.
+			var md strings.Builder
+			if err := render(&md); err != nil {
+				return err
+			}
+			a.spin.pause()
+			out, err := a.theme().Markdown(md.String(), a.width()-6) // margins and quote bars
+			if err != nil {
+				return err
+			}
+			_, err = io.WriteString(a.out, out)
+			return err
+		}
 		return render(a.out)
 	}
 	var buf strings.Builder
@@ -227,13 +244,21 @@ func (a *app) emitReport(r report.Report, output string) error {
 	if n := len(r.Unheeded); n > 0 {
 		unheeded = fmt.Sprintf(", %d instructed but not followed", n)
 	}
+	if a.fancyErr() {
+		th := a.theme()
+		a.info("\n%s %s  %s", style(th.Heading, "→"), style(th.Title, "Wrote "+strings.Join(tildeAll(written), " and ")),
+			style(th.Faint, fmt.Sprintf("%d findings · %d ignored%s", len(r.Findings), len(r.Ignored), unheeded)))
+		return nil
+	}
 	a.info("%d finding(s), %d ignored%s; wrote %s", len(r.Findings), len(r.Ignored), unheeded, strings.Join(written, " and "))
 	return nil
 }
 
 func (a *app) summarizeIngest(r pipeline.IngestResult) {
-	a.info("ingested %d new line(s) from %d file(s) (%d unchanged, %d outside window), %d session(s) touched, in %s",
-		r.Lines, r.Files-r.Unchanged-r.OutsideWin, r.Unchanged, r.OutsideWin, r.Sessions, r.Elapsed)
+	a.done(fmt.Sprintf("ingested %d new line(s) from %d file(s) (%d unchanged, %d outside window), %d session(s) touched, in %s",
+		r.Lines, r.Files-r.Unchanged-r.OutsideWin, r.Unchanged, r.OutsideWin, r.Sessions, r.Elapsed),
+		fmt.Sprintf("Ingested %d new lines from %d files", r.Lines, r.Files-r.Unchanged-r.OutsideWin),
+		fmt.Sprintf("%d unchanged · %d sessions touched", r.Unchanged, r.Sessions))
 	if r.Malformed > 0 {
 		a.warn("%d malformed transcript line(s) skipped", r.Malformed)
 	}
@@ -258,7 +283,9 @@ func (a *app) summarizeAnalyze(r pipeline.AnalyzeResult) {
 	if r.LLMCalls > 0 {
 		llm = fmt.Sprintf(", %d LLM call(s)", r.LLMCalls)
 	}
-	a.info("analyzed: %d finding(s) (%d new), remedies %s%s, in %s", len(r.Findings), r.NewFindings, counts(r.Remedies), llm, r.Elapsed)
+	a.done(fmt.Sprintf("analyzed: %d finding(s) (%d new), remedies %s%s, in %s", len(r.Findings), r.NewFindings, counts(r.Remedies), llm, r.Elapsed),
+		fmt.Sprintf("Analyzed %d findings, %d new", len(r.Findings), r.NewFindings),
+		strings.TrimPrefix(remedyCounts(r.Remedies)+llm, ", "))
 }
 
 // counts renders a map as "a=1 b=2" in key order.
@@ -276,4 +303,15 @@ func counts(m map[string]int) string {
 		parts[i] = fmt.Sprintf("%s=%d", k, m[k])
 	}
 	return strings.Join(parts, " ")
+}
+
+// remedyCounts renders remedy counts for people: "5 CLAUDE.md · 1 hook".
+func remedyCounts(m map[string]int) string {
+	var parts []string
+	for _, r := range []string{remedy.Hook, remedy.ClaudeMD, remedy.Skill, remedy.Ignore} {
+		if n := m[r]; n > 0 {
+			parts = append(parts, fmt.Sprintf("%d %s", n, ui.RemedyLabel(r)))
+		}
+	}
+	return strings.Join(parts, " · ")
 }

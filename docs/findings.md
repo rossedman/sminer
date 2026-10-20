@@ -144,6 +144,10 @@ sminer finding trend Fc72cc0   # week by week
 
 For an accepted finding, the weekly rate is split at the adoption date:
 
+![sminer finding trend: weekly bars, red before adoption and teal after, with the change in rate.](assets/terminal/trend.png)
+
+Piped, the same view is plain text:
+
 ```text
 Before adoption: 3.40/week. After: 0.50/week over 4.0 weeks (-85%).
 ```
