@@ -119,7 +119,7 @@ func newRootCmd(a *app) *cobra.Command {
 	f := newFindingCmd(a)
 	f.GroupID = "findings"
 	root.AddCommand(f)
-	for _, c := range []*cobra.Command{newConfigCmd(a), newEvalCmd(a), newVersionCmd(a)} {
+	for _, c := range []*cobra.Command{newConfigCmd(a), newLabelCmd(a), newEvalCmd(a), newVersionCmd(a)} {
 		c.GroupID = "other"
 		root.AddCommand(c)
 	}

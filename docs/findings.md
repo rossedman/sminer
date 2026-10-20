@@ -45,6 +45,15 @@ Before a proposal is reported, it's checked against what you already have. It's 
 - an existing hook (in `settings.json` or your hooks directory) already mentions the same file or command, or
 - an installed skill has the same name or a similar description.
 
+### Instructions that aren't working
+
+A rule that's already in CLAUDE.md isn't always covered. If you corrected Claude about it at least twice **after** the file holding it last changed, the instruction isn't working, and sminer escalates instead of ignoring it:
+
+- When a mechanical check can be derived from the rule (it names a file or a command), the finding becomes a **Hook**. The report notes the line it's escalating from and how often it was ignored.
+- Otherwise it's listed under **Instructed but not followed** in the report, with the line and the count. Rewording the line, moving it into the repo's CLAUDE.md, or writing a hook by hand are the options there.
+
+The file's modification time stands in for when the line was added. Any later edit to the file resets the count, so the check errs on the side of not escalating.
+
 ## The remedies
 
 ### Hook
@@ -91,8 +100,26 @@ Apply:  cd ~/src/claude-hooks && patch -p1 < THIS_FILE
 
 `patch` and `git apply` both skip the header.
 
-!!! warning "One patch per file at a time"
-    Patches are rendered against the file as it is when you accept. Apply one before you accept another finding that targets the same CLAUDE.md, or the second patch won't apply cleanly.
+### Several at once
+
+Pass several IDs to accept them together. CLAUDE.md lines for the same file go into one patch, named after their IDs, that adds them all under `## Learned conventions`:
+
+```bash
+sminer finding accept Fc72cc0 F81d2e4 F0a9b31
+```
+
+```text
+sminer Fc72cc0, F81d2e4: 2 CLAUDE.md lines
+  Fc72cc0 Write table-driven tests with the standard library, not testify
+  F81d2e4 Run `go test ./...` before saying a change is done
+Remedy: claude_md
+Apply:  cd ~/src/api && patch -p1 < THIS_FILE
+```
+
+Every patch is built before any is written, so a finding that can't be patched (say, a hook whose script already exists) stops the whole batch with nothing changed.
+
+!!! warning "Apply before accepting more for the same file"
+    Patches are rendered against the file as it is when you accept. Accept a file's lines together, or apply one patch before accepting another finding for the same CLAUDE.md, or the second patch won't apply cleanly.
 
 ## A finding's life
 

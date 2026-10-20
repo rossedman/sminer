@@ -223,7 +223,11 @@ func (a *app) emitReport(r report.Report, output string) error {
 		}
 		written = append(written, jsonPath)
 	}
-	a.info("%d finding(s), %d ignored; wrote %s", len(r.Findings), len(r.Ignored), strings.Join(written, " and "))
+	unheeded := ""
+	if n := len(r.Unheeded); n > 0 {
+		unheeded = fmt.Sprintf(", %d instructed but not followed", n)
+	}
+	a.info("%d finding(s), %d ignored%s; wrote %s", len(r.Findings), len(r.Ignored), unheeded, strings.Join(written, " and "))
 	return nil
 }
 

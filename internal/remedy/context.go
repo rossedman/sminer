@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/rossedman/sminer/internal/config"
 	"github.com/rossedman/sminer/internal/textutil"
@@ -150,12 +151,29 @@ func (e *Existing) lines(path string) []mdLine {
 	return out
 }
 
+// Coverage is an existing CLAUDE.md line that already states a rule.
+type Coverage struct {
+	Path string
+	Line int
+	Text string
+}
+
+func (c Coverage) String() string { return fmt.Sprintf("%s:%d", c.Path, c.Line) }
+
 // CoveredByClaudeMD returns "path:line" when an existing instruction already
 // says roughly the same thing as rule.
 func (e *Existing) CoveredByClaudeMD(rule string, repos []string) string {
+	if c, ok := e.ClaudeMDCoverage(rule, repos); ok {
+		return c.String()
+	}
+	return ""
+}
+
+// ClaudeMDCoverage finds the existing CLAUDE.md line that covers rule.
+func (e *Existing) ClaudeMDCoverage(rule string, repos []string) (Coverage, bool) {
 	rt := textutil.Tokens(rule)
 	if len(rt) < 2 {
-		return ""
+		return Coverage{}, false
 	}
 	rset := map[string]bool{}
 	for _, w := range rt {
@@ -164,7 +182,7 @@ func (e *Existing) CoveredByClaudeMD(rule string, repos []string) string {
 	for _, f := range e.ClaudeMDFiles(repos) {
 		for _, l := range e.lines(f) {
 			if textutil.Jaccard(rt, l.tokens) >= 0.5 {
-				return fmt.Sprintf("%s:%d", l.path, l.n)
+				return Coverage{l.path, l.n, strings.TrimSpace(l.text)}, true
 			}
 			inter := 0
 			seen := map[string]bool{}
@@ -175,11 +193,19 @@ func (e *Existing) CoveredByClaudeMD(rule string, repos []string) string {
 				}
 			}
 			if len(rset) >= 3 && float64(inter)/float64(len(rset)) >= 0.8 {
-				return fmt.Sprintf("%s:%d", l.path, l.n)
+				return Coverage{l.path, l.n, strings.TrimSpace(l.text)}, true
 			}
 		}
 	}
-	return ""
+	return Coverage{}, false
+}
+
+// modTime is a file's last modification, or the zero time.
+func modTime(path string) time.Time {
+	if st, err := os.Stat(path); err == nil {
+		return st.ModTime()
+	}
+	return time.Time{}
 }
 
 // CoveredByHook returns where an existing hook already mentions literal.

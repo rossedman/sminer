@@ -14,6 +14,7 @@ Acting on findings
 
 Other
   sminer config show | path
+  sminer label
   sminer eval
   sminer version
   sminer completion bash | zsh | fish | powershell
@@ -89,6 +90,8 @@ The proposal, the target file and every excerpt behind the finding, each with th
 
 Render each finding's patch against its target as it is now, write it to the patch directory, print its path on stdout, and record the adoption date. The apply command, and the `settings.json` entry for a hook, go to stderr.
 
+CLAUDE.md lines accepted together for the same file share one patch, named after their IDs (`F1a2b3c+F4d5e6f.patch`), and its path is printed once. Every patch is built before anything is written, so if one finding can't be patched, nothing changes.
+
 | Flag | Meaning |
 |---|---|
 | `--preview` | Print the patch; write nothing and leave the finding unchanged |
@@ -96,6 +99,7 @@ Render each finding's patch against its target as it is now, write it to the pat
 
 ```bash
 patch -d ~ -p1 < "$(sminer finding accept F1a2b3c)"
+sminer finding accept F1a2b3c F4d5e6f F7a8b9c   # one patch per CLAUDE.md
 ```
 
 ### `sminer finding dismiss <id>...`
@@ -124,9 +128,22 @@ The config file's path, whether or not it exists. `--json` adds `exists` and the
 $EDITOR "$(sminer config path)"
 ```
 
+### `sminer label`
+
+Label real candidate turns from your own transcripts, one at a time: `y` correction, `n` not, `s` skip, `q` quit. Each answer is appended to the labels file as you give it. The file's path goes to stdout at the end. See [Evaluation](evaluation.md#label-your-own-turns).
+
+| Flag | Meaning |
+|---|---|
+| `--out FILE` | Labels file to append to (default `$XDG_DATA_HOME/sminer/labels.jsonl`) |
+| `--limit N` | Turns to label this session (default 50) |
+| `--seed N` | Sampling seed, for a repeatable sample |
+| `--export` | Write the sample to stdout as JSONL with `"correction": null`, to label in an editor |
+
+Labelling needs a terminal; without one it exits 2 and suggests `--export`.
+
 ### `sminer eval`
 
-Score correction detection against a labelled set. See [Evaluation](evaluation.md).
+Score correction detection against a labelled set: by default the one `sminer label` writes, or any file passed with `--labels`. `--live` also scores the classifier. See [Evaluation](evaluation.md).
 
 ### `sminer version`
 

@@ -41,7 +41,22 @@ type Proposal struct {
 	Steps       []string `json:"steps,omitempty"`
 	// Why the remedy was ignored, when it was.
 	Why string `json:"why,omitempty"`
+	// Unheeded is set when the rule is already in a CLAUDE.md that Claude
+	// keeps not following.
+	Unheeded *Unheeded `json:"unheeded,omitempty"`
 }
+
+// Unheeded records an instruction that exists but isn't being followed: the
+// correction kept happening after the CLAUDE.md holding it last changed.
+type Unheeded struct {
+	Where string `json:"where"` // path:line
+	Line  string `json:"line"`  // the existing instruction
+	Since int    `json:"since"` // occurrences after the file last changed
+}
+
+// unheededMin is how many corrections after the instruction's file last
+// changed it takes to call the instruction unheeded.
+const unheededMin = 2
 
 // DecodeProposal parses Finding.Proposal.
 func DecodeProposal(s string) Proposal {
@@ -355,9 +370,8 @@ func dedupe(remedy string, p Proposal, f store.Finding, sigs []store.Signal, rep
 			return Ignore, p, where
 		}
 	case ClaudeMD:
-		if where := ex.CoveredByClaudeMD(p.Rule, repos); where != "" {
-			p.Why = "already in " + where
-			return Ignore, p, where
+		if c, ok := ex.ClaudeMDCoverage(p.Rule, repos); ok {
+			return escalate(p, f, sigs, repos, ex, c)
 		}
 	case Skill:
 		if where := ex.CoveredBySkill(p.SkillName, p.Description); where != "" {
@@ -366,6 +380,44 @@ func dedupe(remedy string, p Proposal, f store.Finding, sigs []store.Signal, rep
 		}
 	}
 	return remedy, p, ""
+}
+
+// escalate handles a rule that CLAUDE.md already states. If the correction
+// kept happening after that file last changed, the instruction isn't
+// working: propose a hook when a mechanical check can be found, and
+// otherwise report it as unheeded rather than quietly ignoring it. The file's
+// modification time is a lower bound on when the line was added, so the
+// count is conservative.
+func escalate(p Proposal, f store.Finding, sigs []store.Signal, repos []string, ex *Existing, c Coverage) (string, Proposal, string) {
+	since := 0
+	if f.Family == cluster.Behavior {
+		mt := modTime(c.Path)
+		for _, s := range sigs {
+			if s.TS.After(mt) {
+				since++
+			}
+		}
+	}
+	if since < unheededMin {
+		p.Why = "already in " + c.String()
+		return Ignore, p, c.String()
+	}
+	u := &Unheeded{Where: c.String(), Line: c.Text, Since: since}
+	candidates := []string{strings.TrimLeft(c.Text, "-*0123456789.) "), p.Rule}
+	for _, s := range sigs {
+		candidates = append(candidates, s.Rule, cluster.SignalText(s))
+	}
+	for _, text := range candidates {
+		if hp, ok := ExtractHook(text); ok {
+			hp.Rule = p.Rule
+			hp.Unheeded = u
+			// An existing hook that already blocks it wins.
+			return dedupe(Hook, hp, f, sigs, repos, ex)
+		}
+	}
+	p.Unheeded = u
+	p.Why = fmt.Sprintf("already in %s, but corrected %d times since that file last changed; no mechanical check could be derived, so reword the line or write a hook by hand", c.String(), since)
+	return Ignore, p, c.String()
 }
 
 func target(remedy string, p Proposal, repos []string, cfg config.Config) string {
