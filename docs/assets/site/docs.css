@@ -67,6 +67,38 @@
 .md-typeset table:not([class]) { border: 1px solid var(--ink-3); border-radius: 0.6rem; overflow: hidden; font-size: 0.74rem; }
 .md-typeset table:not([class]) th { background: var(--ink-2); color: var(--cream); font-weight: 600; }
 .md-typeset table:not([class]) td { border-top: 1px solid var(--ink-3); vertical-align: top; }
+/* Keys, flags and paths in tables wrap at spaces only, never mid-word; the
+   table scrolls sideways if a cell still doesn't fit. */
+.md-typeset table:not([class]) code { word-break: normal; overflow-wrap: normal; }
+.md-typeset table:not([class]) td:first-child code { white-space: nowrap; }
+
+/* Phones: tables with three or more columns become stacked cards, one per
+   row, each cell labelled with its column (docs.js adds the labels). */
+@media (max-width: 40em) {
+  .md-typeset table[data-stack] { display: block; border: none; background: none; font-size: 0.74rem; }
+  .md-typeset table[data-stack] thead { display: none; }
+  .md-typeset table[data-stack] tbody { display: block; }
+  .md-typeset table[data-stack] tr {
+    display: block; margin: 0 0 0.6rem; padding: 0.55rem 0.8rem;
+    border: 1px solid var(--ink-3); border-radius: 0.6rem; background: var(--ink-2);
+  }
+  .md-typeset table[data-stack] td {
+    display: block; position: relative;
+    padding: 0.25rem 0 0.25rem 5.6rem; border: none !important;
+  }
+  .md-typeset table[data-stack] td::before {
+    content: attr(data-label); position: absolute; left: 0; top: 0.5rem; width: 5rem;
+    color: var(--dim); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.08em; line-height: 1.2; text-transform: uppercase;
+  }
+  .md-typeset table[data-stack] td:empty { display: none; }
+  .md-typeset table[data-stack] td:first-child { font-weight: 600; color: var(--cream); }
+  .md-typeset table[data-stack] code { overflow-wrap: anywhere; }
+  .md-typeset table[data-stack] td:first-child code { white-space: normal; }
+  .md-typeset .md-typeset__table:has(table[data-stack]) { padding: 0; }
+  .md-typeset__scrollwrap:has(table[data-stack]) { margin: 0; overflow: visible; }
+  /* Two-column tables keep scrolling as a whole; long paths in them wrap. */
+  .md-typeset table:not([data-stack]) td:not(:first-child) code { overflow-wrap: anywhere; }
+}
 
 /* Quotes: example corrections and prompts */
 .md-typeset blockquote {

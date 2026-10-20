@@ -80,6 +80,7 @@ extra_css:
   - assets/site/docs.css
 extra_javascript:
   - assets/site/landing.js
+  - assets/site/docs.js
 
 extra:
   social:
