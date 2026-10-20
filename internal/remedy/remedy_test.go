@@ -229,3 +229,10 @@ func TestClaudeMDPatchCombinedApplies(t *testing.T) {
 		t.Error("findings for different files combined")
 	}
 }
+
+func TestSkillName(t *testing.T) {
+	got := skillName("Create a branch on this repo and then run the jfrog-cli skill and audit the repo. Determine how many fixable high and critical CVEs there are")
+	if got != "jfrog-cli-audit-fixable" {
+		t.Errorf("skillName = %q", got)
+	}
+}

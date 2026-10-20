@@ -175,7 +175,21 @@ func Route(f store.Finding, sigs []store.Signal) (string, Proposal) {
 		rule := fmt.Sprintf("When `%s` fails, read the error and fix the cause before re-running the same command (it repeatedly failed with: %s). Document the correct invocation here.", f.Key, textutil.Truncate(textutil.OneLine(errLine), 160))
 		return ClaudeMD, Proposal{Rule: rule}
 	case cluster.Fixup:
-		rule := fmt.Sprintf("Edits to %s files are regularly hand-corrected afterwards: match the surrounding code's conventions and run the project's formatter after editing them.", f.Key)
+		var kinds []string
+		for i, k := range cluster.FixupKinds(sigs) {
+			if i == 3 {
+				break
+			}
+			kinds = append(kinds, k.Kind)
+		}
+		what := "files"
+		switch n := len(kinds); {
+		case n == 1:
+			what = kinds[0] + " files"
+		case n > 1:
+			what = strings.Join(kinds[:n-1], ", ") + " and " + kinds[n-1] + " files"
+		}
+		rule := fmt.Sprintf("Edits to %s are often hand-corrected afterwards: match the surrounding code's conventions and run the project's formatter after editing.", what)
 		return ClaudeMD, Proposal{Rule: rule}
 	}
 
@@ -328,7 +342,8 @@ func skillFrom(text string, sigs []store.Signal) Proposal {
 	if len(steps) <= 1 {
 		steps = nil
 		for _, s := range stepSplit.Split(text, -1) {
-			if s = strings.TrimSpace(s); len(s) > 3 {
+			s = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(s), " and"))
+			if len(s) > 3 {
 				steps = append(steps, strings.ToUpper(s[:1])+s[1:])
 			}
 		}
@@ -336,11 +351,39 @@ func skillFrom(text string, sigs []store.Signal) Proposal {
 	title := textutil.Truncate(textutil.OneLine(text), 80)
 	return Proposal{
 		Rule:        title,
-		SkillName:   textutil.Slug(title, 40),
+		SkillName:   skillName(text),
 		Description: fmt.Sprintf("Use when asked to: %s", textutil.Truncate(textutil.OneLine(text), 160)),
 		Steps:       steps,
 	}
 }
+
+// skillFiller are words too generic to name a skill by.
+var skillFiller = map[string]bool{
+	"create": true, "run": true, "make": true, "then": true, "repo": true, "repository": true,
+	"branch": true, "skill": true, "determine": true, "how": true, "many": true, "much": true,
+	"please": true, "can": true, "you": true, "this": true, "that": true, "these": true, "it": true,
+	"up": true, "all": true, "new": true, "get": true, "do": true, "use": true, "using": true,
+}
+
+// skillName builds a short slug from the first few distinctive words, so a
+// prompt like "Create a branch and run the jfrog-cli skill to audit..."
+// becomes "jfrog-cli-audit-fixable" rather than the prompt cut mid-word.
+func skillName(text string) string {
+	var words []string
+	for _, w := range textutil.Tokens(text) {
+		w = strings.Trim(slugChars.ReplaceAllString(w, "-"), "-")
+		if w == "" || skillFiller[w] {
+			continue
+		}
+		words = append(words, w)
+		if len(words) == 3 || len(strings.Join(words, "-")) >= 24 {
+			break
+		}
+	}
+	return textutil.Slug(strings.Join(words, "-"), 40)
+}
+
+var slugChars = regexp.MustCompile(`[^a-z0-9-]+`)
 
 // asRule turns an excerpt into an instruction-shaped line.
 func asRule(text string) string {

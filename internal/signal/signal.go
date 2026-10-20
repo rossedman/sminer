@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -31,6 +33,33 @@ func NeedsClassifier(s store.Signal) bool {
 }
 
 const interruptedPrefix = "(interrupted) "
+
+// DetectorVersion changes whenever Detect would produce different signals
+// from the same turns; Run then re-detects every session.
+const DetectorVersion = "2"
+
+// IsBareInterrupt reports whether s is an interrupt the user gave no
+// reason for. It counts as friction but says nothing to cluster on.
+func IsBareInterrupt(s store.Signal) bool {
+	return s.Type == store.Interrupt && strings.HasPrefix(s.Excerpt, interruptedPrefix)
+}
+
+// IsScratchPath reports whether path is a temp, scratchpad or ~/.claude
+// file. Claude's background tasks and the app rewrite these, so a change
+// there is not the user fixing Claude's work.
+func IsScratchPath(path string) bool {
+	p := filepath.Clean(path)
+	roots := []string{"/tmp", "/private/tmp", "/var/folders", "/private/var/folders", filepath.Clean(os.TempDir())}
+	if home, err := os.UserHomeDir(); err == nil {
+		roots = append(roots, filepath.Join(home, ".claude"))
+	}
+	for _, r := range roots {
+		if p == r || strings.HasPrefix(p, r+"/") {
+			return true
+		}
+	}
+	return strings.Contains(p, "/scratchpad/") || strings.Contains(p, "/scratch-workspaces/")
+}
 
 // Detect runs the per-session detectors over one session's turns.
 func Detect(sess store.Session, turns []store.Turn) []store.Signal {
@@ -98,6 +127,10 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 				failCmd, failStreak = "", 0
 			}
 		case ingest.KindHook:
+			// Turns stored before hook detection was tightened.
+			if !ingest.IsHook(t.Text) {
+				continue
+			}
 			key, msg := HookKey(t.Text)
 			ctx := ""
 			if tu, ok := tools[t.ToolUseID]; ok {
@@ -110,11 +143,11 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			if t.Kind == ingest.KindInterrupt && prevKind == ingest.KindInterrupt {
 				continue
 			}
-			excerpt := strings.TrimSpace(t.Text)
+			excerpt := ingest.StripInterrupt(t.Text)
 			if excerpt == "" {
 				for j := i + 1; j < len(turns); j++ {
 					n := turns[j]
-					if n.Kind == ingest.KindUserText {
+					if n.Kind == ingest.KindUserText && !ingest.IsHarnessText(n.Text) {
 						excerpt = n.Text
 						consumed[n.ID] = true
 						break
@@ -134,6 +167,9 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			}
 			emit(t, store.Interrupt, store.High, excerpt, ctx, t.ID)
 		case ingest.KindUserText:
+			if ingest.IsHarnessText(t.Text) {
+				continue
+			}
 			if t.ParentUUID != "" {
 				children[t.ParentUUID] = append(children[t.ParentUUID], t)
 			}
@@ -146,6 +182,9 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			}
 			actions = nil
 		case ingest.KindFixup:
+			if IsScratchPath(t.ToolKey) {
+				continue
+			}
 			key := FileKey(t.ToolKey)
 			emit(t, store.ManualFixup, store.Low, fmt.Sprintf("%s changed outside Claude right after Claude edited it", t.ToolKey), "", key)
 		}
@@ -240,6 +279,14 @@ func Run(ctx context.Context, st *store.Store, opt Options) (Stats, error) {
 	sessions, err := st.Sessions()
 	if err != nil {
 		return stats, err
+	}
+	if st.Meta("detector_version") != DetectorVersion {
+		if _, err := st.DB.Exec(`UPDATE sessions SET dirty=1`); err != nil {
+			return stats, err
+		}
+		if err := st.SetMeta("detector_version", DetectorVersion); err != nil {
+			return stats, err
+		}
 	}
 	rows, err := st.DB.Query(`SELECT session_id FROM sessions WHERE dirty=1`)
 	if err != nil {

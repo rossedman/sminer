@@ -190,3 +190,15 @@ func TestDBPermissions(t *testing.T) {
 		t.Errorf("db mode = %v, want 0600", info.Mode().Perm())
 	}
 }
+
+func TestNoiseHelpers(t *testing.T) {
+	if !IsHarnessText("<task-notification>\n<task-type>x</task-type>") || IsHarnessText("<div> is wrong here") || IsHarnessText("no, use pnpm") {
+		t.Error("IsHarnessText")
+	}
+	if got := StripInterrupt("[Request interrupted by user for tool use]\nkeep vendor"); got != "keep vendor" {
+		t.Errorf("StripInterrupt = %q", got)
+	}
+	if !IsHook("PreToolUse:Edit hook error: [x.sh]: no") || IsHook("diff --git a/x b/x\n+ hook failed") || IsHook("export type Hook = { error: string }") {
+		t.Error("IsHook")
+	}
+}

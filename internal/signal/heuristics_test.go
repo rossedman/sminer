@@ -141,3 +141,34 @@ func TestDetectCountsOneInterruptOnce(t *testing.T) {
 		t.Errorf("sigs = %+v", sigs)
 	}
 }
+
+func TestDetectSkipsNoise(t *testing.T) {
+	turns := []store.Turn{
+		{ID: "1#0", Kind: ingest.KindUserText, Role: "user", Text: "fix the tests"},
+		{ID: "2#0", Kind: ingest.KindToolUse, Role: "assistant", ToolName: "Bash", ToolKey: "go test ./...", ToolUseID: "t"},
+		// Stored before ingest stripped the marker: no reason given.
+		{ID: "3#0", Kind: ingest.KindInterrupt, Role: "user", Text: "[Request interrupted by user]"},
+		{ID: "4#0", Kind: ingest.KindToolUse, Role: "assistant", ToolName: "Bash", ToolKey: "ls", ToolUseID: "u"},
+		{ID: "5#0", Kind: ingest.KindUserText, Role: "user", Text: `<ci-monitor-event>"Auto-fix pull requests" was just enabled. No, stop.</ci-monitor-event>`},
+		{ID: "6#0", Kind: ingest.KindHook, Role: "user", Text: "15355:declare module 'claude-code/testing' { hook error"},
+		{ID: "7#0", Kind: ingest.KindFixup, ToolKey: "/private/tmp/claude-501/x/tasks/b0.output"},
+		{ID: "8#0", Kind: ingest.KindFixup, ToolKey: "/work/app/scratchpad/page.html"},
+	}
+	sigs := Detect(store.Session{}, turns)
+	if len(sigs) != 1 || sigs[0].Type != store.Interrupt || !IsBareInterrupt(sigs[0]) {
+		t.Fatalf("want one bare interrupt, got %+v", sigs)
+	}
+}
+
+func TestIsScratchPath(t *testing.T) {
+	for p, want := range map[string]bool{
+		"/private/tmp/claude-501/a/scratchpad/x.html": true,
+		"/tmp/x.output":                     true,
+		"/Users/me/Code/app/main.go":        false,
+		"/Users/me/Code/app/tmp/fixture.go": false,
+	} {
+		if got := IsScratchPath(p); got != want {
+			t.Errorf("IsScratchPath(%q) = %v", p, got)
+		}
+	}
+}
