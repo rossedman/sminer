@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/rossedman/sminer/internal/config"
@@ -113,23 +113,36 @@ func or(a, b string) string {
 	return b
 }
 
-// printError prints err (one sentence, then the next step) and returns its exit
-// code. Under --json the error is also a JSON object on stderr.
-func printError(w io.Writer, err error, asJSON bool, style func(string, string) string) int {
+// printError prints err (one sentence, then the next step) and returns its
+// exit code. Under --json the error is also a JSON object on stderr. On a
+// terminal it's a badge and the hint; elsewhere "error:" and "hint:" lines,
+// so scripts and logs can grep for them.
+func (a *app) printError(err error) int {
+	w := a.err
 	exit, code, hint := resolve(err)
 	if exit == ExitInterrupted {
 		fmt.Fprintln(w, "interrupted")
 		return exit
 	}
-	if asJSON {
+	if a.g.json {
 		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{
 			"code": code, "exit": exit, "message": err.Error(), "hint": hint,
 		}})
 		return exit
 	}
-	fmt.Fprintf(w, "%s %s\n", style(red, "error:"), err)
+	t := a.theme()
+	if isTerminal(a.opts.Stderr) {
+		badge := lipgloss.NewStyle().Bold(true).Padding(0, 1).Foreground(t.P.Ink).Background(t.P.Ember).Render("ERROR")
+		fmt.Fprintf(w, "\n%s %s\n", badge, style(t.Text, err.Error()))
+		if hint != "" {
+			fmt.Fprintf(w, "%s %s\n", style(t.Faint, "      →"), style(t.Muted, hint))
+		}
+		fmt.Fprintln(w)
+		return exit
+	}
+	fmt.Fprintf(w, "error: %s\n", err)
 	if hint != "" {
-		fmt.Fprintf(w, "%s %s\n", style(dim, "hint:"), hint)
+		fmt.Fprintf(w, "hint: %s\n", hint)
 	}
 	return exit
 }

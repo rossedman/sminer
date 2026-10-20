@@ -130,7 +130,7 @@ $EDITOR "$(sminer config path)"
 
 ### `sminer label`
 
-Label real candidate turns from your own transcripts, one at a time: `y` correction, `n` not, `s` skip, `q` quit. Each answer is appended to the labels file as you give it. The file's path goes to stdout at the end. See [Evaluation](evaluation.md#label-your-own-turns).
+Label real candidate turns from your own transcripts, one at a time, in a full-screen labeller: `y` correction, `n` not, `s` skip, `q` quit. A single key answers; no Enter needed. Each answer is appended to the labels file as you give it. The file's path goes to stdout at the end. See [Evaluation](evaluation.md#label-your-own-turns).
 
 | Flag | Meaning |
 |---|---|
@@ -155,9 +155,27 @@ sminer treats its output as an interface.
 
 - **stdout is data:** the report, JSON, patch paths, lists. **stderr is everything else:** progress, warnings, hints and errors. `sminer run > report.md` captures only the report.
 - **`--json` works on every command that returns data.** Fields are only ever added, never renamed or removed.
-- **Plain lists are line-oriented:** one record per line, stable field order, a header only on a terminal.
+- **Piped lists are line-oriented:** one record per line, stable field order, no header. On a terminal they are drawn as tables (below).
 - **Empty is not an error.** No findings exits 0, prints nothing in plain mode, and prints `[]` with `--json`.
 - **Color only decorates.** It's off when the output isn't a terminal, with `NO_COLOR`, with `TERM=dumb`, and with `--no-color`.
+
+### On a terminal
+
+When a person is reading, sminer draws its output with [Charm](https://charm.sh)'s libraries: lists become tables with score bars, `finding show` becomes a card, reports are rendered Markdown, diffs are colored, pipeline steps get a spinner, and help is styled. Piped or redirected, the same commands print the plain forms above, byte for byte, so scripts never see a box-drawing character.
+
+![sminer run: each pipeline step finishes with a check mark and its outcome.](assets/terminal/run.png)
+
+![sminer finding list: a table of findings with remedy colors and score bars.](assets/terminal/list.png)
+
+![sminer finding show: the finding as a card, with its proposal boxed and every excerpt quoted.](assets/terminal/show.png)
+
+![sminer finding accept --preview: the patch with additions in teal and hunk headers in violet.](assets/terminal/preview.png)
+
+Colors are downsampled to what your terminal supports. sminer assumes a dark background unless `COLORFGBG` says otherwise (`COLORFGBG=0;15` for dark text on light); help reads the background from the terminal itself.
+
+Errors on a terminal get a badge; elsewhere they stay as `error:` and `hint:` lines that logs and scripts can match.
+
+![An error: a red ERROR badge, the message, and the next step.](assets/terminal/error.png)
 
 ## Errors and exit codes
 

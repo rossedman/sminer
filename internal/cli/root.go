@@ -3,13 +3,18 @@ package cli
 import (
 	"context"
 	"fmt"
+	"image/color"
+	"io"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
 
+	"charm.land/fang/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
+	"github.com/rossedman/sminer/internal/ui"
 	"github.com/rossedman/sminer/internal/version"
 )
 
@@ -23,26 +28,63 @@ func Execute() int {
 // Run executes one invocation. It never calls os.Exit, so tests can drive it.
 func Run(ctx context.Context, argv []string, opts Options) (code int) {
 	a := newApp(opts)
+	if noColorArg(argv) {
+		// Before anything renders, so help and usage errors honor it too.
+		os.Setenv("NO_COLOR", "1")
+	}
+	a.out = ui.NewWriter(a.opts.Stdout, false)
+	a.err = ui.NewWriter(a.opts.Stderr, false)
 	defer a.close()
 	defer func() {
 		if r := recover(); r != nil {
+			a.spin.finish(false)
 			fmt.Fprintf(a.err, "%s sminer crashed: %v\n\n%s\nThis is a bug in sminer, not something you did. Please report it at %s\nwith the command you ran and this output (version %s).\n",
-				a.style(red, "error:"), r, debug.Stack(), issuesURL, version.Get().Version)
+				style(a.theme().Err.Bold(true), "error:"), r, debug.Stack(), issuesURL, version.Get().Version)
 			code = ExitFailure
 		}
 	}()
 	root := newRootCmd(a)
 	root.SetArgs(argv)
-	root.SetOut(a.out)
-	root.SetErr(a.err)
-	err := root.ExecuteContext(ctx)
+	// Help is rendered by fang, which does its own color detection on the
+	// real streams.
+	root.SetOut(a.opts.Stdout)
+	root.SetErr(a.opts.Stderr)
+	err := fang.Execute(ctx, root,
+		fang.WithColorSchemeFunc(helpColors),
+		fang.WithoutVersion(),
+		fang.WithErrorHandler(func(io.Writer, fang.Styles, error) {}), // printed below, with exit codes
+	)
 	if ctx.Err() != nil {
 		err = ctx.Err()
 	}
+	a.spin.finish(err == nil)
 	if err == nil {
 		return ExitOK
 	}
-	return printError(a.err, err, a.g.json, a.style)
+	return a.printError(err)
+}
+
+// helpColors is fang's help color scheme in the brand palette.
+func helpColors(c lipgloss.LightDarkFunc) fang.ColorScheme {
+	p := ui.NewPalette(c(nil, lipgloss.Color("#000")) != nil)
+	return fang.ColorScheme{
+		Base:           p.Text,
+		Title:          p.Ore,
+		Description:    p.Text,
+		Codeblock:      p.Surface,
+		Program:        p.Ore,
+		DimmedArgument: p.Muted,
+		Comment:        p.Faint,
+		Flag:           p.Gem,
+		FlagDefault:    p.Muted,
+		Command:        p.Violet,
+		QuotedString:   p.Ember,
+		Argument:       p.Text,
+		Help:           p.Text,
+		Dash:           p.Muted,
+		ErrorHeader:    [2]color.Color{p.Ink, p.Ember},
+		ErrorDetails:   p.Ember,
+	}
 }
 
 const rootLong = `sminer reads your Claude Code session transcripts, finds the corrections
@@ -53,7 +95,7 @@ patch file you review and apply yourself.
 
 Network: only classification and proposal drafting call the Anthropic API,
 and only candidate turns (about 2 KB each) are sent. --offline or
-SMINER_OFFLINE=1 keeps everything on this machine.`
+SMINER_OFFLINE=1 keeps everything on this machine.` + "\n" + exitCodesHelp + linksHelp
 
 const exitCodesHelp = `
 Exit codes: 0 ok, 1 failure, 2 usage, 4 not found, 5 precondition failed, 130 interrupted.
@@ -93,7 +135,6 @@ func newRootCmd(a *app) *cobra.Command {
 	}
 	root.SetVersionTemplate("sminer {{.Version}}\n")
 	root.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error { return usageError(cmd, err) })
-	root.SetHelpTemplate(root.HelpTemplate() + `{{if not .HasParent}}` + exitCodesHelp + `{{end}}` + linksHelp)
 
 	pf := root.PersistentFlags()
 	pf.StringVar(&a.g.configFile, "config", "", "config file (default $XDG_CONFIG_HOME/sminer/config.yaml)")
@@ -108,9 +149,9 @@ func newRootCmd(a *app) *cobra.Command {
 	root.MarkFlagsMutuallyExclusive("quiet", "verbose")
 
 	root.AddGroup(
-		&cobra.Group{ID: "pipeline", Title: "Mining:"},
-		&cobra.Group{ID: "findings", Title: "Acting on findings:"},
-		&cobra.Group{ID: "other", Title: "Other:"},
+		&cobra.Group{ID: "pipeline", Title: "Mining"},
+		&cobra.Group{ID: "findings", Title: "Acting on findings"},
+		&cobra.Group{ID: "other", Title: "Other"},
 	)
 	for _, c := range []*cobra.Command{newRunCmd(a), newIngestCmd(a), newAnalyzeCmd(a), newReportCmd(a)} {
 		c.GroupID = "pipeline"

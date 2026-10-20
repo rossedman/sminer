@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/rossedman/sminer/internal/config"
@@ -46,7 +47,21 @@ is SMINER_CLASSIFIER_MODEL.`,
 			if a.g.json {
 				return a.printJSON(out)
 			}
-			return a.table([]string{"KEY", "VALUE", "SOURCE"}, rows)
+			if a.fancyOut() {
+				for _, r := range rows {
+					r[1], r[2] = tildeIn(r[1]), tildeIn(r[2])
+				}
+			}
+			th := a.theme()
+			return a.table([]string{"KEY", "VALUE", "SOURCE"}, rows, func(row, col int) lipgloss.Style {
+				switch col {
+				case 0:
+					return th.Key
+				case 2:
+					return sourceStyle(th, rows[row][2])
+				}
+				return th.Value
+			})
 		},
 	}
 	path := &cobra.Command{

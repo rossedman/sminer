@@ -82,15 +82,18 @@ No findings is not an error: the command prints nothing and exits 0.`,
 			if a.g.json {
 				return a.printJSON(fs)
 			}
-			if len(fs) == 0 && isTerminal(a.out) {
+			if len(fs) == 0 && a.fancyOut() {
 				a.info("no %s findings; run 'sminer run' to look for some", status)
+			}
+			if a.fancyOut() {
+				return a.findingTable(fs)
 			}
 			rows := make([][]string, len(fs))
 			for i, f := range fs {
 				rows[i] = []string{f.ID, f.Status, f.Remedy, strconv.Itoa(f.Occurrences), strconv.Itoa(f.Sessions),
 					strconv.FormatFloat(f.Score, 'f', 0, 64), f.Title}
 			}
-			return a.table([]string{"ID", "STATUS", "REMEDY", "OCCURRENCES", "SESSIONS", "SCORE", "TITLE"}, rows)
+			return a.table(nil, rows, nil)
 		},
 	}
 	cmd.Flags().StringVar(&status, "status", store.StatusOpen, "open, accepted, dismissed or all")
@@ -124,9 +127,13 @@ func newFindingShowCmd(a *app) *cobra.Command {
 }
 
 func (a *app) writeFinding(f report.Finding) {
+	if a.fancyOut() {
+		fmt.Fprint(a.out, a.findingCard(f))
+		return
+	}
 	w := a.out
 	p := f.Proposal
-	fmt.Fprintf(w, "%s  %s\n", a.styleOut(bold, f.ID), f.Title)
+	fmt.Fprintf(w, "%s  %s\n", f.ID, f.Title)
 	fmt.Fprintf(w, "status %s · remedy %s · %d occurrences in %d sessions · score %.0f\n", f.Status, f.Remedy, f.Occurrences, f.Sessions, f.Score)
 	if len(f.Repos) > 0 {
 		fmt.Fprintf(w, "repos %s\n", strings.Join(f.Repos, ", "))
@@ -138,23 +145,32 @@ func (a *app) writeFinding(f report.Finding) {
 		fmt.Fprintf(w, "adopted %s\n", f.AdoptedAt.Format("2006-01-02"))
 	}
 	fmt.Fprintln(w)
-	switch f.Remedy {
-	case remedy.Hook:
-		fmt.Fprintf(w, "proposal: PreToolUse hook on %s, block when %s matches %s\n  %s\n", p.Matcher, p.Field, p.Pattern, p.Rule)
-	case remedy.Skill:
-		fmt.Fprintf(w, "proposal: skill %s (%s)\n", p.SkillName, p.Description)
-		for i, s := range p.Steps {
-			fmt.Fprintf(w, "  %d. %s\n", i+1, s)
-		}
-	case remedy.Ignore:
-		fmt.Fprintf(w, "ignored: %s\n", p.Why)
-	default:
-		fmt.Fprintf(w, "proposal: %s\n", p.Rule)
-	}
+	fmt.Fprintln(w, proposalText(f.Remedy, p))
 	fmt.Fprintln(w)
 	for _, e := range f.Excerpts {
-		fmt.Fprintf(w, "%s  %-20s %s\n    %s\n    %s\n", e.TS.Format("2006-01-02 15:04"), e.Type, e.Repo, e.Text, a.styleOut(dim, e.Resume))
+		fmt.Fprintf(w, "%s  %-20s %s\n    %s\n    %s\n", e.TS.Format("2006-01-02 15:04"), e.Type, e.Repo, e.Text, e.Resume)
 	}
+}
+
+// proposalText describes a proposal in a line or a short list.
+func proposalText(r string, p remedy.Proposal) string {
+	switch r {
+	case remedy.Hook:
+		s := fmt.Sprintf("proposal: PreToolUse hook on %s, block when %s matches %s\n  %s", p.Matcher, p.Field, p.Pattern, p.Rule)
+		if u := p.Unheeded; u != nil {
+			s = fmt.Sprintf("escalated: %s is ignored (corrected %d times since)\n", u.Where, u.Since) + s
+		}
+		return s
+	case remedy.Skill:
+		s := fmt.Sprintf("proposal: skill %s (%s)", p.SkillName, p.Description)
+		for i, st := range p.Steps {
+			s += fmt.Sprintf("\n  %d. %s", i+1, st)
+		}
+		return s
+	case remedy.Ignore:
+		return "ignored: " + p.Why
+	}
+	return "proposal: " + p.Rule
 }
 
 func newFindingAcceptCmd(a *app) *cobra.Command {
@@ -196,15 +212,15 @@ can't be patched, nothing is written.`,
 				group := append([]string{res.ID}, res.Combined...)
 				i += len(group)
 				if preview {
-					fmt.Fprint(a.out, res.Diff)
+					if a.fancyOut() {
+						fmt.Fprint(a.out, a.theme().Diff(res.Diff))
+					} else {
+						fmt.Fprint(a.out, res.Diff)
+					}
 					continue
 				}
 				fmt.Fprintln(a.out, res.PatchPath)
-				a.info("accepted %s; apply with: %s", strings.Join(group, ", "), res.Apply)
-				if res.FollowUp != "" {
-					a.info("%s", res.FollowUp)
-				}
-				a.info("undo with: sminer finding reopen %s", strings.Join(group, " "))
+				a.acceptedNote(group, res)
 			}
 			return nil
 		},
@@ -290,6 +306,10 @@ With an id, print that finding's week-by-week counts.`,
 				if a.g.json {
 					return a.printJSON(tr)
 				}
+				if a.fancyOut() {
+					fmt.Fprint(a.out, a.trendChart(tr))
+					return nil
+				}
 				report.WriteTrend(a.out, tr)
 				return nil
 			}
@@ -299,6 +319,9 @@ With an id, print that finding's week-by-week counts.`,
 			}
 			if a.g.json {
 				return a.printJSON(trs)
+			}
+			if a.fancyOut() {
+				return a.trendTable(trs)
 			}
 			rows := make([][]string, len(trs))
 			for i, tr := range trs {
@@ -312,7 +335,7 @@ With an id, print that finding's week-by-week counts.`,
 				}
 				rows[i] = []string{tr.ID, strconv.FormatFloat(tr.BeforeRate, 'f', 2, 64), after, report.Sparkline(ws), tr.Title}
 			}
-			return a.table([]string{"ID", "BEFORE/WK", "AFTER/WK", "WEEKLY", "TITLE"}, rows)
+			return a.table(nil, rows, nil)
 		},
 	}
 }

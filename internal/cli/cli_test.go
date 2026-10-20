@@ -114,7 +114,7 @@ func TestHelpAndUsageErrors(t *testing.T) {
 		inStderr string
 	}{
 		{nil, ExitOK, "Exit codes:", ""},
-		{[]string{"--help"}, ExitOK, "Acting on findings:", ""},
+		{[]string{"--help"}, ExitOK, "ACTING ON FINDINGS", ""},
 		{[]string{"help", "finding"}, ExitOK, "sminer finding list", ""},
 		{[]string{"finding", "accept", "-h"}, ExitOK, "--preview", ""},
 		{[]string{"analyz"}, ExitUsage, "", "Did you mean this?"},
@@ -180,6 +180,9 @@ func TestRunOffline(t *testing.T) {
 	}
 	if strings.Contains(r.stdout, "ingested") || !strings.Contains(r.stderr, "ingested") {
 		t.Error("progress belongs on stderr, not stdout")
+	}
+	if strings.Contains(r.stdout+r.stderr, "\x1b") {
+		t.Error("escape codes in output that isn't a terminal")
 	}
 	if strings.Contains(r.stdout, "ghp_") {
 		t.Error("secret leaked into report")

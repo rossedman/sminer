@@ -34,13 +34,7 @@ sminer eval --labels testdata/labels/candidates.jsonl --live
 
 `sminer label` builds that set from the transcripts you've already ingested. It samples messages you sent right after Claude used a tool, half that the heuristic flags as corrections and half it doesn't, and shows each one with what Claude had just done:
 
-```text
-[2/50] Claude had just done:
-  Write /work/infra/s3.tf — write 45 bytes
-You said:
-  Use snake_case for terraform resource names, not camelCase.
-correction? [y]es [n]o [s]kip [q]uit: y
-```
+![sminer label: what Claude had just done, what you said, and one key to answer.](assets/terminal/label.png)
 
 Each answer is appended to `$XDG_DATA_HOME/sminer/labels.jsonl` (mode `0600`) as soon as you give it, so quitting or pressing Ctrl-C loses nothing. Turns you've labelled aren't offered again. Plain `sminer eval` then scores against your own labels:
 

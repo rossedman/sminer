@@ -23,6 +23,7 @@ import (
 	"github.com/rossedman/sminer/internal/finding"
 	"github.com/rossedman/sminer/internal/pipeline"
 	"github.com/rossedman/sminer/internal/store"
+	"github.com/rossedman/sminer/internal/ui"
 )
 
 // Options inject I/O and dependencies; zero values use the real ones.
@@ -77,13 +78,17 @@ type app struct {
 	loaded  bool
 	st      *store.Store
 	now     time.Time
+	th      *ui.Theme
+	spin    *spinner
 }
 
 func newApp(opts Options) *app {
 	opts = opts.withDefaults()
 	v := viper.New()
 	config.Setup(v)
-	return &app{opts: opts, out: opts.Stdout, err: opts.Stderr, v: v, now: opts.Now()}
+	a := &app{opts: opts, out: opts.Stdout, err: opts.Stderr, v: v, now: opts.Now()}
+	a.spin = &spinner{a: a}
+	return a
 }
 
 // viperKey is the flag annotation naming the config key a flag sets.
@@ -195,26 +200,42 @@ func (a *app) progress(format string, args ...any) {
 	if a.g.quiet {
 		return
 	}
-	fmt.Fprintf(a.err, "%s "+format+"\n", append([]any{a.style(dim, "·")}, args...)...)
+	a.spin.step(fmt.Sprintf(format, args...))
 }
 
 // info prints a short human note on stderr unless --quiet.
 func (a *app) info(format string, args ...any) {
 	if !a.g.quiet {
+		a.spin.pause()
 		fmt.Fprintf(a.err, format+"\n", args...)
 	}
+}
+
+// done reports a stage's outcome. On a terminal it replaces the spinner's
+// line (title, then muted detail); elsewhere it prints plain, a line that
+// scripts and logs can match.
+func (a *app) done(plain, title, detail string) {
+	if a.g.quiet {
+		return
+	}
+	if a.fancyErr() && a.spin.outcome(title, detail) {
+		return
+	}
+	a.info("%s", plain)
 }
 
 // debugf prints detail only with --verbose.
 func (a *app) debugf(format string, args ...any) {
 	if a.g.verbose {
-		fmt.Fprintf(a.err, a.style(dim, format)+"\n", args...)
+		a.spin.pause()
+		fmt.Fprintln(a.err, style(a.theme().Faint, fmt.Sprintf(format, args...)))
 	}
 }
 
 // warn always prints, prefixed so it survives without color.
 func (a *app) warn(format string, args ...any) {
-	fmt.Fprintf(a.err, a.style(yellow, "warning:")+" "+format+"\n", args...)
+	a.spin.pause()
+	fmt.Fprintln(a.err, style(a.theme().Warn.Bold(true), "warning:")+" "+fmt.Sprintf(format, args...))
 }
 
 // printJSON writes v to stdout as indented JSON.

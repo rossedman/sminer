@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/rossedman/sminer/internal/config"
@@ -58,7 +60,7 @@ labelling in an editor; 'sminer eval' skips lines still null.`,
 				out = defaultLabels()
 			}
 			out = config.Expand(out)
-			if !export && !a.opts.ForceInteractive && (!isTerminal(a.opts.Stdin) || !isTerminal(a.err)) {
+			if !export && !a.opts.ForceInteractive && (!isTerminal(a.opts.Stdin) || !isTerminal(a.opts.Stderr)) {
 				return withHint(usageError(cmd, errors.New("labelling is interactive and needs a terminal")),
 					"use 'sminer label --export > batch.jsonl' to label in an editor instead")
 			}
@@ -127,7 +129,48 @@ func (a *app) printLine(v any) error {
 	return err
 }
 
+// tally counts one labelling session's answers.
+type tally struct{ yes, no, skipped int }
+
 func (a *app) labelInteractive(cmd *cobra.Command, sample []signal.Candidate, out string) error {
+	var t tally
+	save := func(c signal.Candidate, correction bool) error {
+		if err := eval.Append(out, eval.Item{Action: c.Action, Message: c.Message, Correction: correction, Turn: c.Turn}); err != nil {
+			return err
+		}
+		if correction {
+			t.yes++
+		} else {
+			t.no++
+		}
+		return nil
+	}
+	var err error
+	if a.opts.ForceInteractive || !a.fancyErr() {
+		err = a.labelLines(cmd, sample, save, &t)
+	} else {
+		err = a.labelTUI(cmd, sample, save, &t)
+	}
+	th := a.theme()
+	a.info("%s labelled %d %s, skipped %d %s %s", style(th.OK, "✓"), t.yes+t.no,
+		style(th.Faint, fmt.Sprintf("(%d corrections, %d not)", t.yes, t.no)), t.skipped, style(th.Faint, "·"), out)
+	if err != nil {
+		return err
+	}
+	if t.yes+t.no == 0 {
+		return nil
+	}
+	a.info("%s", style(th.Faint, "score detection with: sminer eval"))
+	if a.g.json {
+		return a.printJSON(map[string]any{"out": out, "labelled": t.yes + t.no, "corrections": t.yes, "not_corrections": t.no, "skipped": t.skipped})
+	}
+	fmt.Fprintln(a.out, out)
+	return nil
+}
+
+// labelLines asks one line at a time: for tests, and terminals too plain
+// for the full-screen labeller.
+func (a *app) labelLines(cmd *cobra.Command, sample []signal.Candidate, save func(signal.Candidate, bool) error, t *tally) error {
 	lines := make(chan string)
 	go func() {
 		sc := bufio.NewScanner(a.opts.Stdin)
@@ -136,33 +179,16 @@ func (a *app) labelInteractive(cmd *cobra.Command, sample []signal.Candidate, ou
 		}
 		close(lines)
 	}()
-	var yes, no, skipped int
-	summary := func() {
-		a.info("labelled %d (%d corrections, %d not), skipped %d; saved to %s", yes+no, yes, no, skipped, out)
-		if yes+no > 0 {
-			a.info("score detection with: sminer eval")
-		}
-	}
-	finish := func() error {
-		summary()
-		if yes+no == 0 {
-			return nil
-		}
-		if a.g.json {
-			return a.printJSON(map[string]any{"out": out, "labelled": yes + no, "corrections": yes, "not_corrections": no, "skipped": skipped})
-		}
-		fmt.Fprintln(a.out, out)
-		return nil
-	}
+	th := a.theme()
 	w := a.err
 	for i, c := range sample {
-		fmt.Fprintf(w, "\n%s %s\n", a.style(dim, fmt.Sprintf("[%d/%d]", i+1, len(sample))), a.style(dim, "Claude had just done:"))
+		fmt.Fprintf(w, "\n%s %s\n", style(th.Faint, fmt.Sprintf("[%d/%d]", i+1, len(sample))), style(th.Muted, "Claude had just done:"))
 		for _, l := range strings.Split(c.Action, "\n") {
-			fmt.Fprintf(w, "  %s\n", a.style(dim, l))
+			fmt.Fprintf(w, "  %s\n", style(th.Muted, l))
 		}
-		fmt.Fprintf(w, "%s\n", a.style(dim, "You said:"))
+		fmt.Fprintf(w, "%s\n", style(th.Muted, "You said:"))
 		for _, l := range strings.Split(textutil.Truncate(c.Message, 600), "\n") {
-			fmt.Fprintf(w, "  %s\n", a.style(bold, l))
+			fmt.Fprintf(w, "  %s\n", style(th.Title, l))
 		}
 	ask:
 		for {
@@ -172,34 +198,51 @@ func (a *app) labelInteractive(cmd *cobra.Command, sample []signal.Candidate, ou
 			select {
 			case <-cmd.Context().Done():
 				fmt.Fprintln(w)
-				summary()
 				return cmd.Context().Err()
 			case line, ok = <-lines:
 			}
 			if !ok {
 				fmt.Fprintln(w)
-				return finish()
+				return nil
 			}
 			switch strings.ToLower(strings.TrimSpace(line)) {
 			case "y", "yes":
-				if err := eval.Append(out, eval.Item{Action: c.Action, Message: c.Message, Correction: true, Turn: c.Turn}); err != nil {
+				if err := save(c, true); err != nil {
 					return err
 				}
-				yes++
 				break ask
 			case "n", "no":
-				if err := eval.Append(out, eval.Item{Action: c.Action, Message: c.Message, Correction: false, Turn: c.Turn}); err != nil {
+				if err := save(c, false); err != nil {
 					return err
 				}
-				no++
 				break ask
 			case "s", "skip", "":
-				skipped++
+				t.skipped++
 				break ask
 			case "q", "quit":
-				return finish()
+				return nil
 			}
 		}
 	}
-	return finish()
+	return nil
+}
+
+// labelTUI runs the full-screen labeller.
+func (a *app) labelTUI(cmd *cobra.Command, sample []signal.Candidate, save func(signal.Candidate, bool) error, t *tally) error {
+	m := &labelModel{th: a.theme(), items: sample, save: save, t: t, width: a.width()}
+	p := tea.NewProgram(m, tea.WithContext(cmd.Context()), tea.WithInput(a.opts.Stdin), tea.WithOutput(a.opts.Stderr))
+	_, err := p.Run()
+	if ctxErr := cmd.Context().Err(); ctxErr != nil {
+		return ctxErr
+	}
+	if m.err != nil {
+		return m.err
+	}
+	if m.interrupted {
+		return context.Canceled
+	}
+	if err != nil && !errors.Is(err, tea.ErrProgramKilled) {
+		return err
+	}
+	return nil
 }
