@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/rossedman/sminer/internal/finding"
 	"github.com/rossedman/sminer/internal/remedy"
@@ -212,5 +214,38 @@ func TestReviewEmpty(t *testing.T) {
 	press(m, "a", "d", "space", "p", "down")
 	if m.mode != modeCard || m.accepted != 0 || !strings.Contains(m.render(), "No open findings") {
 		t.Errorf("empty review:\n%s", m.render())
+	}
+}
+
+func TestHeadline(t *testing.T) {
+	got := headline("Create a branch on this repo and then run the jfrog-cli skill and audit the repo. Determine how many fixabl...", 60)
+	if got != "Create a branch on this repo and then run the jfrog-cli…" {
+		t.Errorf("headline = %q", got)
+	}
+	if got := headline("Short title", 60); got != "Short title" {
+		t.Errorf("headline = %q", got)
+	}
+}
+
+func TestRenderReport(t *testing.T) {
+	r := report.Report{
+		Sessions:     12,
+		SignalCounts: map[string]int{"correction": 3, "manual_fixup": 1},
+		Findings: []report.Finding{{
+			ID: "F1", Title: "Use pnpm, not npm", Remedy: "claude_md", Status: "open",
+			Occurrences: 4, Sessions: 3, Repos: []string{"/x/acme/web", "/x/acme/api"},
+			Proposal: remedy.Proposal{Rule: "Use pnpm, not npm."},
+		}},
+	}
+	out := ansi.Strip(renderReport(ui.New(true), r, 80))
+	for _, want := range []string{"12 sessions", "3 corrections", "1 hand-fixed edit", "1 thing worth fixing", "Use pnpm, not npm", "F1", "+ Use pnpm, not npm.", "sminer review"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	for _, l := range strings.Split(out, "\n") {
+		if w := lipgloss.Width(l); w > 80 {
+			t.Errorf("line %d cells wide: %q", w, l)
+		}
 	}
 }

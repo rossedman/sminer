@@ -271,7 +271,7 @@ func excerpts(sigs []store.Signal, sessions map[string]store.Session, n int) []E
 	for pass := 0; pass < 2 && len(out) < n; pass++ {
 		for i := len(sigs) - 1; i >= 0 && len(out) < n; i-- {
 			s := sigs[i]
-			if used[s.ID] || (pass == 0 && sessUsed(out, s.SessionID)) {
+			if used[s.ID] || (pass == 0 && sessUsed(out, s.SessionID)) || textUsed(out, s.Excerpt) {
 				continue
 			}
 			used[s.ID] = true
@@ -279,6 +279,18 @@ func excerpts(sigs []store.Signal, sessions map[string]store.Session, n int) []E
 		}
 	}
 	return out
+}
+
+// textUsed skips an occurrence that reads the same as one already picked,
+// as a prompt pasted into several sessions does.
+func textUsed(ex []Excerpt, text string) bool {
+	t := textutil.OneLine(text)
+	for _, e := range ex {
+		if e.Text == textutil.Truncate(t, 280) {
+			return true
+		}
+	}
+	return false
 }
 
 func sessUsed(ex []Excerpt, sid string) bool {
@@ -310,21 +322,37 @@ var signalNames = []struct{ typ, one, many string }{
 	{store.Correction, "correction", "corrections"},
 	{store.Interrupt, "interrupt", "interrupts"},
 	{store.Rewind, "rewind", "rewinds"},
-	{store.RepeatedInstruction, "repeated instruction", "repeated instructions"},
+	{store.RepeatedInstruction, "repeated prompt", "repeated prompts"},
 	{store.HookBlock, "hook block", "hook blocks"},
-	{store.ToolFailure, "command failing in a loop", "commands failing in a loop"},
+	{store.ToolFailure, "failure loop", "failure loops"},
 	{store.ManualFixup, "hand-fixed edit", "hand-fixed edits"},
+}
+
+// FrictionCount is one signal type's count with its plain-language label.
+type FrictionCount struct {
+	Count int
+	Label string
+}
+
+// Friction lists the non-zero signal counts in a fixed order, labelled for
+// people.
+func Friction(counts map[string]int) []FrictionCount {
+	var out []FrictionCount
+	for _, n := range signalNames {
+		switch c := counts[n.typ]; {
+		case c == 1:
+			out = append(out, FrictionCount{1, n.one})
+		case c > 1:
+			out = append(out, FrictionCount{c, n.many})
+		}
+	}
+	return out
 }
 
 func signalSummary(counts map[string]int) string {
 	var parts []string
-	for _, n := range signalNames {
-		switch c := counts[n.typ]; {
-		case c == 1:
-			parts = append(parts, "1 "+n.one)
-		case c > 1:
-			parts = append(parts, fmt.Sprintf("%d %s", c, n.many))
-		}
+	for _, f := range Friction(counts) {
+		parts = append(parts, fmt.Sprintf("%d %s", f.Count, f.Label))
 	}
 	return strings.Join(parts, " · ")
 }
