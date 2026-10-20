@@ -64,6 +64,42 @@ type group struct {
 	cent    []float32
 }
 
+// FixupKey groups every manual fix-up into one finding. Per-file-kind
+// findings read as near-duplicates; FixupKinds gives the breakdown instead.
+const FixupKey = "edits"
+
+// KindCount is how many fix-ups touched one kind of file.
+type KindCount struct {
+	Kind  string
+	Count int
+}
+
+// FixupKinds counts fix-up signals by file kind (their key), most first.
+func FixupKinds(sigs []store.Signal) []KindCount {
+	counts := map[string]int{}
+	for _, s := range sigs {
+		if s.Type == store.ManualFixup && s.Key != "" {
+			counts[s.Key]++
+		}
+	}
+	return SortKinds(counts)
+}
+
+// SortKinds orders per-kind counts, most first.
+func SortKinds(counts map[string]int) []KindCount {
+	var out []KindCount
+	for k, c := range counts {
+		out = append(out, KindCount{k, c})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Count != out[j].Count {
+			return out[i].Count > out[j].Count
+		}
+		return out[i].Kind < out[j].Kind
+	})
+	return out
+}
+
 // SignalText is the text a behavioural signal clusters on: the classifier's
 // generalised rule when there is one, else the excerpt.
 func SignalText(s store.Signal) string {
@@ -101,10 +137,13 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 	if err != nil {
 		return stats, err
 	}
-	// A classifier "ignore" means one-off; keep it out of clustering.
+	// A classifier "ignore" means one-off; keep it out of clustering. So is
+	// an interrupt with no reason given: it is friction, but there is no
+	// rule in it to propose.
+	all := append([]store.Signal(nil), sigs...)
 	kept := sigs[:0]
 	for _, s := range sigs {
-		if s.RemedyHint == "ignore" {
+		if s.RemedyHint == "ignore" || (s.Type == store.Interrupt && strings.HasPrefix(s.Excerpt, "(interrupted) ")) {
 			continue
 		}
 		kept = append(kept, s)
@@ -125,10 +164,14 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 			behavior = append(behavior, s)
 			continue
 		}
-		k := fam + "\x00" + s.Key
+		key := s.Key
+		if fam == Fixup {
+			key = FixupKey
+		}
+		k := fam + "\x00" + key
 		g := byKey[k]
 		if g == nil {
-			g = &group{family: fam, key: s.Key}
+			g = &group{family: fam, key: key}
 			byKey[k] = g
 			groups = append(groups, g)
 		}
@@ -175,6 +218,14 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 		return stats, err
 	}
 	defer tx.Rollback()
+	// Re-link every in-scope signal from scratch, so one that no longer
+	// clusters (or is now filtered out) stops counting toward its old
+	// finding.
+	for _, s := range all {
+		if _, err := tx.Exec(`DELETE FROM finding_signals WHERE signal_id=?`, s.ID); err != nil {
+			return stats, err
+		}
+	}
 	for _, g := range big {
 		f, ok := match(g, existing, taken, thr)
 		if !ok {
@@ -199,9 +250,6 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 		}
 		f.UpdatedAt = opt.Now
 		for _, s := range g.members {
-			if _, err := tx.Exec(`DELETE FROM finding_signals WHERE signal_id=?`, s.ID); err != nil {
-				return stats, err
-			}
 			if _, err := tx.Exec(`INSERT OR IGNORE INTO finding_signals(finding_id, signal_id) VALUES(?,?)`, f.ID, s.ID); err != nil {
 				return stats, err
 			}
@@ -270,7 +318,7 @@ func DefaultTitle(family, key string, members []store.Signal, vecs [][]float32, 
 	case Failure:
 		return fmt.Sprintf("`%s` fails repeatedly in a row", key)
 	case Fixup:
-		return fmt.Sprintf("Manual fix-ups to %s files right after Claude edits them", key)
+		return "You often hand-correct files right after Claude edits them"
 	}
 	rep := Representative(members, vecs, cent)
 	return textutil.Truncate(textutil.OneLine(SignalText(rep)), 110)

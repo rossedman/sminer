@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/rossedman/sminer/internal/embed"
+	"github.com/rossedman/sminer/internal/ingest"
 	"github.com/rossedman/sminer/internal/store"
 	"github.com/rossedman/sminer/internal/textutil"
 )
@@ -55,7 +56,7 @@ func repeated(st *store.Store, opt Options, sessions map[string]store.Session) e
 			return err
 		}
 		it.t.TS = store.FromMs(ts)
-		if len(textutil.Tokens(it.t.Text)) < 5 || !guidanceRe.MatchString(it.t.Text) {
+		if len(textutil.Tokens(it.t.Text)) < 5 || !guidanceRe.MatchString(it.t.Text) || ingest.IsHarnessText(it.t.Text) {
 			continue
 		}
 		it.vec = store.DecodeVec(emb)
