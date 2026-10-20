@@ -10,6 +10,7 @@ Mining
   sminer report     print the ranked report
 
 Acting on findings
+  sminer review     work through findings in a full-screen browser
   sminer finding list | show | accept | dismiss | reopen | trend
 
 Other
@@ -70,6 +71,38 @@ Find signals in sessions with new turns, confirm candidates with the classifier 
 Print the ranked report. Takes `--since`, `--repo`, `--min-count` and `--output`, like `run`.
 
 ## Acting on findings
+
+### `sminer review`
+
+Work through findings in a full-screen browser: the list on the left, the selected finding (or its patch) on the right, one key per action.
+
+![sminer review: the findings list beside the selected finding's card.](assets/terminal/review.png)
+
+| Key | Action |
+|---|---|
+| `↑` `↓` / `j` `k` | Move through findings; `g` `G` jump to the first and last |
+| `space` / `x` | Mark a finding. Actions apply to every marked one, or to the one under the cursor when none are marked |
+| `p` / `enter` | Show the patch accepting would write. Nothing is written |
+| `a` | Accept: write the patch and record the adoption, like `finding accept` |
+| `d` | Dismiss, with an optional reason |
+| `r` | Reopen an accepted or dismissed finding |
+| `tab` / `shift+tab` | Switch between open, accepted, dismissed and all |
+| `J` `K` / `pgup` `pgdn` | Scroll the right pane |
+| `?` | Every key |
+| `q` / `esc` | Quit |
+
+![Two findings marked and previewed together: their CLAUDE.md lines share one patch.](assets/terminal/review-preview.png)
+
+CLAUDE.md lines marked together for the same file share one patch, as with `finding accept F1 F2`. Accepted and dismissed findings stay in the list with their new status until you switch tabs.
+
+When you quit, the paths of the patches written go to stdout, one per line, and a summary with each patch's apply command goes to stderr. `--json` prints `{"patches": [...], "accepted": n, "dismissed": n, "reopened": n}` instead.
+
+| Flag | Meaning |
+|---|---|
+| `--status S` | Tab to start on: `open` (default), `accepted`, `dismissed` or `all` |
+| `--patch-dir DIR` | Where to write patches (default `$XDG_DATA_HOME/sminer/patches`) |
+
+`review` needs a terminal; without one it exits 2. Scripts use `finding list` and `finding accept`.
 
 ### `sminer finding list`
 

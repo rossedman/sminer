@@ -157,9 +157,10 @@ func newRootCmd(a *app) *cobra.Command {
 		c.GroupID = "pipeline"
 		root.AddCommand(c)
 	}
-	f := newFindingCmd(a)
-	f.GroupID = "findings"
-	root.AddCommand(f)
+	for _, c := range []*cobra.Command{newReviewCmd(a), newFindingCmd(a)} {
+		c.GroupID = "findings"
+		root.AddCommand(c)
+	}
 	for _, c := range []*cobra.Command{newConfigCmd(a), newLabelCmd(a), newEvalCmd(a), newVersionCmd(a)} {
 		c.GroupID = "other"
 		root.AddCommand(c)
