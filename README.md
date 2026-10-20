@@ -30,6 +30,14 @@ It never edits CLAUDE.md, settings or hooks itself. Its output is a ranked repor
 
 ## Install
 
+With Homebrew, on macOS or Linux:
+
+```sh
+brew install rossedman/tap/sminer
+```
+
+Or download an archive for your platform from the [releases page](https://github.com/rossedman/sminer/releases) and put `sminer` on your `PATH`. Archives include shell completions and a man page. With Go 1.26 or later:
+
 ```sh
 go install github.com/rossedman/sminer/cmd/sminer@latest
 ```

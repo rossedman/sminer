@@ -40,3 +40,8 @@ findings.json
 
 # mkdocs build output
 /site/
+
+# release builds
+/dist/
+/completions/
+/manpages/
