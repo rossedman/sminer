@@ -16,9 +16,9 @@ const (
 	bold   = "1"
 )
 
-// isTerminal reports whether w is a character device (a TTY).
-func isTerminal(w io.Writer) bool {
-	f, ok := w.(*os.File)
+// isTerminal reports whether a stream is a character device (a TTY).
+func isTerminal(stream any) bool {
+	f, ok := stream.(*os.File)
 	if !ok {
 		return false
 	}

@@ -162,17 +162,19 @@ func newFindingAcceptCmd(a *app) *cobra.Command {
 	var dir string
 	cmd := &cobra.Command{
 		Use:   "accept <id>...",
-		Short: "Write the patch for a finding and mark it adopted",
+		Short: "Write the patch for findings and mark them adopted",
 		Long: `Write the patch for each finding and mark it adopted.
 
-The patch is rendered against the target file as it is now and written
-atomically to the patch directory; its path goes to stdout. Nothing else is
-modified: apply the patch yourself. --preview prints the patch instead and
-changes nothing. Undo with 'sminer finding reopen <id>'.
+Patches are rendered against the target files as they are now and written
+atomically to the patch directory; each patch path goes to stdout once.
+Nothing else is modified: apply the patches yourself. --preview prints the
+patches instead and changes nothing. Undo with 'sminer finding reopen <id>'.
 
-Apply one patch before accepting another for the same file.`,
+CLAUDE.md lines accepted together for the same file share one patch (named
+like F1a2b3c+F4d5e6f.patch), so they apply cleanly together. If any finding
+can't be patched, nothing is written.`,
 		Example: `  sminer finding accept F1a2b3c --preview
-  sminer finding accept F1a2b3c
+  sminer finding accept F1a2b3c F4d5e6f
   patch -d ~ -p1 < "$(sminer finding accept F1a2b3c)"`,
 		Args:              args(cobra.MinimumNArgs(1)),
 		ValidArgsFunction: completeIDs(a, store.StatusOpen, true),
@@ -181,29 +183,28 @@ Apply one patch before accepting another for the same file.`,
 			if err != nil {
 				return err
 			}
-			var results []finding.AcceptResult
-			for _, id := range ids {
-				res, err := svc.Accept(id, dir, preview)
-				if err != nil {
-					return err
-				}
-				results = append(results, res)
-				if a.g.json {
-					continue
-				}
+			results, err := svc.AcceptMany(ids, dir, preview)
+			if err != nil {
+				return err
+			}
+			if a.g.json {
+				return a.printJSON(results)
+			}
+			// Results sharing a patch are adjacent; report each patch once.
+			for i := 0; i < len(results); {
+				res := results[i]
+				group := append([]string{res.ID}, res.Combined...)
+				i += len(group)
 				if preview {
 					fmt.Fprint(a.out, res.Diff)
 					continue
 				}
 				fmt.Fprintln(a.out, res.PatchPath)
-				a.info("accepted %s; apply with: %s", res.ID, res.Apply)
+				a.info("accepted %s; apply with: %s", strings.Join(group, ", "), res.Apply)
 				if res.FollowUp != "" {
 					a.info("%s", res.FollowUp)
 				}
-				a.info("undo with: sminer finding reopen %s", res.ID)
-			}
-			if a.g.json {
-				return a.printJSON(results)
+				a.info("undo with: sminer finding reopen %s", strings.Join(group, " "))
 			}
 			return nil
 		},

@@ -59,9 +59,24 @@ func header(f store.Finding, base string, extra string) string {
 }
 
 func claudeMDPatch(f store.Finding, p Proposal) (Patch, error) {
-	path := f.Target
-	if path == "" {
-		return Patch{}, fmt.Errorf("%w: finding %s has no target file", ErrNoRemedy, f.ID)
+	return ClaudeMDPatch([]store.Finding{f})
+}
+
+// ClaudeMDPatch renders one patch that appends every finding's rule to
+// their shared target file, so several CLAUDE.md lines for the same file can
+// be applied together. All findings must be claude_md with the same target.
+func ClaudeMDPatch(fs []store.Finding) (Patch, error) {
+	if len(fs) == 0 {
+		return Patch{}, ErrNotPatchable
+	}
+	path := fs[0].Target
+	for _, f := range fs {
+		if f.Target == "" {
+			return Patch{}, fmt.Errorf("%w: finding %s has no target file", ErrNoRemedy, f.ID)
+		}
+		if f.RemedyType != ClaudeMD || f.Target != path {
+			return Patch{}, fmt.Errorf("%w: finding %s is not a CLAUDE.md line for %s", ErrNotPatchable, f.ID, path)
+		}
 	}
 	base := baseFor(path)
 	rel, _ := filepath.Rel(base, path)
@@ -78,9 +93,30 @@ func claudeMDPatch(f store.Finding, p Proposal) (Patch, error) {
 		}
 		add = append(add, mdSection, "")
 	}
-	add = append(add, "- "+p.Rule)
+	for _, f := range fs {
+		add = append(add, "- "+DecodeProposal(f.Proposal).Rule)
+	}
 	diff := AppendDiff(rel, old, add, old != "" || fileExists(path))
-	return Patch{Base: base, Diff: header(f, base, "") + diff}, nil
+	hdr := header(fs[0], base, "")
+	if len(fs) > 1 {
+		hdr = combinedHeader(fs, base)
+	}
+	return Patch{Base: base, Diff: hdr + diff}, nil
+}
+
+func combinedHeader(fs []store.Finding, base string) string {
+	var sb strings.Builder
+	ids := make([]string, len(fs))
+	for i, f := range fs {
+		ids[i] = f.ID
+	}
+	fmt.Fprintf(&sb, "sminer %s: %d CLAUDE.md lines\n", strings.Join(ids, ", "), len(fs))
+	for _, f := range fs {
+		fmt.Fprintf(&sb, "  %s %s\n", f.ID, f.Title)
+	}
+	fmt.Fprintf(&sb, "Remedy: %s\n", ClaudeMD)
+	fmt.Fprintf(&sb, "Apply:  cd %s && patch -p1 < THIS_FILE\n\n", base)
+	return sb.String()
 }
 
 func hookPatch(f store.Finding, p Proposal, cfg config.Config) (Patch, error) {

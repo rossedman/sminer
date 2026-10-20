@@ -4,7 +4,7 @@ Transcripts contain work code, secrets pasted by accident, and internal hostname
 
 ## What is stored
 
-Everything sminer keeps lives in one SQLite file, `$XDG_DATA_HOME/sminer/sminer.db`, created with mode `0600`.
+Everything sminer keeps lives in one SQLite file, `$XDG_DATA_HOME/sminer/sminer.db`, created with mode `0600`. If you use `sminer label`, your answers go next to it in `labels.jsonl`, also `0600`, with the redacted turn text.
 
 - **Redacted, truncated extracts.** Your messages are kept up to 2,000 characters; assistant text, tool inputs and failed tool output up to a few hundred. Every string is redacted before it's written.
 - **Pointers, not copies.** Each stored turn records the transcript path and byte offset it came from. Raw transcripts are never copied in.
@@ -61,7 +61,7 @@ A pattern matches the repo or any parent directory, so `~/personal/*` also cover
 ## What sminer writes
 
 - **Read-only against `~/.claude`.** Transcripts, settings and CLAUDE.md files are only ever read.
-- **Patches, not edits.** `sminer finding accept` writes one patch file into the patch directory. It never applies it.
+- **Patches, not edits.** `sminer finding accept` writes patch files into the patch directory. It never applies them.
 - **Only where you ask.** Reports go to stdout unless you pass `--output`. Patch files and report files are written atomically (to a temporary file, then renamed), so a crash never leaves half a file.
 
 ## Removing sminer

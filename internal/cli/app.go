@@ -27,14 +27,20 @@ import (
 
 // Options inject I/O and dependencies; zero values use the real ones.
 type Options struct {
+	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 	Now    func() time.Time
 	// NewLLM builds the classifier client for a model.
 	NewLLM func(model string) classify.LLM
+	// ForceInteractive treats stdin and stderr as terminals (for tests).
+	ForceInteractive bool
 }
 
 func (o Options) withDefaults() Options {
+	if o.Stdin == nil {
+		o.Stdin = os.Stdin
+	}
 	if o.Stdout == nil {
 		o.Stdout = os.Stdout
 	}

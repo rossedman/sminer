@@ -64,13 +64,16 @@ type GuardrailCount struct {
 
 // Report is everything one run outputs.
 type Report struct {
-	GeneratedAt  time.Time        `json:"generated_at"`
-	Since        time.Time        `json:"since"`
-	Repo         string           `json:"repo,omitempty"`
-	Sessions     int              `json:"sessions"`
-	SignalCounts map[string]int   `json:"signal_counts"`
-	Findings     []Finding        `json:"findings"`
-	Ignored      []Finding        `json:"ignored"`
+	GeneratedAt  time.Time      `json:"generated_at"`
+	Since        time.Time      `json:"since"`
+	Repo         string         `json:"repo,omitempty"`
+	Sessions     int            `json:"sessions"`
+	SignalCounts map[string]int `json:"signal_counts"`
+	Findings     []Finding      `json:"findings"`
+	Ignored      []Finding      `json:"ignored"`
+	// Unheeded are CLAUDE.md instructions Claude keeps not following and no
+	// hook could be derived for. They are not in Ignored.
+	Unheeded     []Finding        `json:"unheeded"`
 	Guardrails   []GuardrailCount `json:"guardrails"`
 	UnknownTypes map[string]int   `json:"unknown_event_types,omitempty"`
 }
@@ -162,7 +165,9 @@ func Build(st *store.Store, opt Options) (Report, error) {
 		if at, ok := adoptedAt(st, f.ID); ok {
 			v.AdoptedAt = &at
 		}
-		if f.RemedyType == remedy.Ignore {
+		if f.RemedyType == remedy.Ignore && v.Proposal.Unheeded != nil {
+			r.Unheeded = append(r.Unheeded, v)
+		} else if f.RemedyType == remedy.Ignore {
 			r.Ignored = append(r.Ignored, v)
 		} else {
 			r.Findings = append(r.Findings, v)
@@ -178,6 +183,7 @@ func Build(st *store.Store, opt Options) (Report, error) {
 	}
 	rank(r.Findings)
 	rank(r.Ignored)
+	rank(r.Unheeded)
 	return r, nil
 }
 
@@ -312,6 +318,15 @@ func WriteMarkdown(w io.Writer, r Report) error {
 		writeFinding(&b, i+1, f)
 	}
 
+	if len(r.Unheeded) > 0 {
+		fmt.Fprintf(&b, "## Instructed but not followed (%d)\n\nAlready in a CLAUDE.md, yet corrected again after that file last changed. No mechanical check could be derived, so reword the line, move it somewhere more specific, or write a hook by hand.\n\n", len(r.Unheeded))
+		for _, f := range r.Unheeded {
+			u := f.Proposal.Unheeded
+			fmt.Fprintf(&b, "- **%s** %s — corrected %d times since `%s` changed\n  > %s\n", f.ID, f.Title, u.Since, u.Where, u.Line)
+		}
+		b.WriteString("\n")
+	}
+
 	if len(r.Guardrails) > 0 {
 		b.WriteString("## Guardrail activity\n\nHow often existing hooks blocked an action in this window.\n\n| Hook | Blocks |\n|---|---:|\n")
 		for _, g := range r.Guardrails {
@@ -379,6 +394,9 @@ func writeFinding(b *strings.Builder, n int, f Finding) {
 	p := f.Proposal
 	switch f.Remedy {
 	case remedy.Hook:
+		if u := p.Unheeded; u != nil {
+			fmt.Fprintf(b, "Already instructed at `%s`, but corrected %d times since that file changed. Escalating to a hook.\n\n", u.Where, u.Since)
+		}
 		fmt.Fprintf(b, "PreToolUse hook on `%s`: block when `%s` matches `%s`.\n\n> %s\n\n", p.Matcher, p.Field, p.Pattern, p.Rule)
 	case remedy.Skill:
 		fmt.Fprintf(b, "Skill `%s`: %s\n\n", p.SkillName, p.Description)
@@ -389,8 +407,12 @@ func writeFinding(b *strings.Builder, n int, f Finding) {
 	default:
 		fmt.Fprintf(b, "```diff\n+ - %s\n```\n\n", p.Rule)
 	}
-	if f.Status == store.StatusOpen {
+	switch {
+	case f.Status == store.StatusOpen:
 		fmt.Fprintf(b, "Preview with `sminer finding accept %s --preview`; dismiss with `sminer finding dismiss %s`.\n\n", f.ID, f.ID)
+	case f.Status == store.StatusAccepted && p.Unheeded != nil:
+		// The accepted CLAUDE.md line didn't stick; the hook is a new proposal.
+		fmt.Fprintf(b, "To adopt the hook, `sminer finding reopen %s`, then accept it.\n\n", f.ID)
 	}
 }
 

@@ -68,6 +68,7 @@ Acting on findings
 
 Other
   sminer config show | path
+  sminer label [--limit N] [--export]
   sminer eval [--labels FILE] [--live]
   sminer version
   sminer completion bash|zsh|fish|powershell
@@ -81,7 +82,8 @@ Global flags
 - **ingest** is incremental. Each transcript is re-read only from the byte offset where the last run stopped, and a partially written last line is left for the next run.
 - **analyze** recomputes signals for sessions with new turns, confirms candidates with the classifier (unless offline), clusters the signals into findings, and routes each finding to a remedy.
 - **report** prints Markdown on stdout, ranked by `count × weight × repos`. With `--output FILE` it writes the file atomically and puts `findings.json` beside it.
-- **finding accept** renders the patch against the target as it is right now, writes it to the patch directory, prints its path, and records the adoption date so `finding trend` can show whether the fix worked. `--preview` prints the patch and changes nothing. Apply one patch before accepting another for the same file.
+- **finding accept** renders the patch against the target as it is right now, writes it to the patch directory, prints its path, and records the adoption date so `finding trend` can show whether the fix worked. `--preview` prints the patch and changes nothing. CLAUDE.md lines accepted together for the same file share one patch.
+- **label** walks you through real turns from your own transcripts and records which are corrections, so `eval` measures detection on your sessions.
 - **finding reopen** undoes accept or dismiss.
 
 ### Output, scripting and exit codes
@@ -126,7 +128,7 @@ Heuristics run first and are cheap. Only candidate turns go to the classifier.
 | Hook | The rule is mechanically checkable (a file path or a command) | A `PreToolUse` script for `hooks_dir`, plus the `settings.json` entry to register it |
 | CLAUDE.md line | Judgment or style the model must apply | A diff appending to the repo's `CLAUDE.md` (single-repo findings) or the global one |
 | Skill | A multi-step procedure you keep re-explaining | A draft `SKILL.md` |
-| Ignore | One-off (single session) or already covered by an existing CLAUDE.md line, hook or skill | Listed in the report's appendix |
+| Ignore | One-off (single session) or already covered by an existing CLAUDE.md line, hook or skill. A CLAUDE.md line you keep correcting Claude on after it was written is escalated to a hook instead, or listed as instructed but not followed | Listed in the report's appendix |
 
 When both a hook and a CLAUDE.md line would fit, the hook wins: deterministic beats instructed. Hook-block findings become CLAUDE.md lines, because the guardrail already exists and Claude keeps tripping it.
 
@@ -158,7 +160,7 @@ embeddings:
   provider: auto            # ollama if it answers locally, else the built-in hashed model
 ```
 
-State lives under `$XDG_DATA_HOME/sminer` (default `~/.local/share/sminer`): the database `sminer.db` (mode `0600`) and accepted patches in `patches/`. To uninstall completely, delete the binary, that directory and the config file.
+State lives under `$XDG_DATA_HOME/sminer` (default `~/.local/share/sminer`): the database `sminer.db` (mode `0600`), accepted patches in `patches/`, and your labels from `sminer label` in `labels.jsonl`. To uninstall completely, delete the binary, that directory and the config file.
 
 ## Privacy and safety
 

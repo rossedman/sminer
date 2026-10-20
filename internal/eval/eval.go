@@ -22,6 +22,7 @@ type Item struct {
 	Action     string `json:"action"`
 	Message    string `json:"message"`
 	Correction bool   `json:"correction"`
+	Turn       string `json:"turn,omitempty"`
 }
 
 // Score is a confusion matrix.
@@ -64,8 +65,11 @@ func (s Score) String() string {
 		100*s.Precision(), 100*s.Recall(), s.TP, s.FP, s.FN, s.TN, s.TP+s.FP+s.FN+s.TN)
 }
 
-// Load reads a JSONL labelled set.
-func Load(path string) ([]Item, error) {
+// Load reads a JSONL labelled set. Lines whose correction is null (exported
+// by 'sminer label --export' and not yet labelled) are skipped.
+func Load(path string) ([]Item, error) { return load(path, false) }
+
+func load(path string, unlabelled bool) ([]Item, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -79,11 +83,14 @@ func Load(path string) ([]Item, error) {
 		if line == "" || strings.HasPrefix(line, "//") {
 			continue
 		}
-		var it Item
-		if err := json.Unmarshal([]byte(line), &it); err != nil {
+		var u Unlabelled
+		if err := json.Unmarshal([]byte(line), &u); err != nil {
 			return nil, fmt.Errorf("%s:%d: %w", path, n, err)
 		}
-		out = append(out, it)
+		if u.Correction == nil && !unlabelled {
+			continue
+		}
+		out = append(out, Item{Action: u.Action, Message: u.Message, Correction: u.Correction != nil && *u.Correction, Turn: u.Turn})
 	}
 	return out, sc.Err()
 }
