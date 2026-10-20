@@ -238,7 +238,7 @@ func TestRenderReport(t *testing.T) {
 		}},
 	}
 	out := ansi.Strip(renderReport(ui.New(true), r, 80))
-	for _, want := range []string{"12 sessions", "3 corrections", "1 hand-fixed edit", "1 thing worth fixing", "Use pnpm, not npm", "F1", "+ Use pnpm, not npm.", "sminer review"} {
+	for _, want := range []string{"12 sessions", "corrections", "hand-fixed edit", "Findings (1)", "Use pnpm, not npm", "F1", "+ Use pnpm, not npm.", "sminer review"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}

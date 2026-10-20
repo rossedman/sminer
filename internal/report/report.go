@@ -330,6 +330,7 @@ var signalNames = []struct{ typ, one, many string }{
 
 // FrictionCount is one signal type's count with its plain-language label.
 type FrictionCount struct {
+	Type  string
 	Count int
 	Label string
 }
@@ -341,9 +342,9 @@ func Friction(counts map[string]int) []FrictionCount {
 	for _, n := range signalNames {
 		switch c := counts[n.typ]; {
 		case c == 1:
-			out = append(out, FrictionCount{1, n.one})
+			out = append(out, FrictionCount{n.typ, 1, n.one})
 		case c > 1:
-			out = append(out, FrictionCount{c, n.many})
+			out = append(out, FrictionCount{n.typ, c, n.many})
 		}
 	}
 	return out
