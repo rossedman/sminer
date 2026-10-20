@@ -209,7 +209,8 @@ description: Before any commit
       <h2>A batch pipeline on your machine.<br><span>One optional network call.</span></h2>
       <p class="sm-lede sm-lede--center">Each stage reads from and writes to a local SQLite file, so any stage can be re-run on its own. Only the classifier leaves the machine, and <code>--offline</code> turns it off.</p>
       <figure class="sm-figure">
-        <img src="{{ 'assets/how-it-works.png' | url }}" alt="Transcripts flow through ingest, signal, classify, cluster, remedy and report, all on your machine around a SQLite store. Only classify calls the Anthropic API, about 2 KB per candidate. Local embeddings feed clustering; your CLAUDE.md, hooks and skills are read to avoid duplicate proposals." loading="lazy">
+        <a href="{{ 'assets/how-it-works.png' | url }}"><img width="2560" height="1440" src="{{ 'assets/how-it-works.png' | url }}" alt="Transcripts flow through ingest, signal, classify, cluster, remedy and report, all on your machine around a SQLite store. Only classify calls the Anthropic API, about 2 KB per candidate. Local embeddings feed clustering; your CLAUDE.md, hooks and skills are read to avoid duplicate proposals." loading="lazy"></a>
+        <figcaption>Tap to open the full-size diagram</figcaption>
       </figure>
       <p class="sm-center"><a class="sm-link" href="{{ 'how-it-works/' | url }}">Read the stage-by-stage tour {% include ".icons/material/arrow-right.svg" %}</a></p>
     </div>

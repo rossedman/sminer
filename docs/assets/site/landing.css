@@ -64,8 +64,9 @@
   background: rgba(244, 180, 67, 0.09);
   padding: 0.08em 0.38em;
   border-radius: 0.3em;
-  white-space: nowrap;
 }
+/* Keep short inline code like --offline in one piece; code in pre keeps its newlines. */
+.sm :not(pre) > code { white-space: nowrap; }
 .sm svg { width: 1.1em; height: 1.1em; fill: currentColor; vertical-align: -0.18em; }
 
 .sm-wrap { max-width: 62rem; margin: 0 auto; padding: 0 1rem; position: relative; }
@@ -89,7 +90,7 @@
     radial-gradient(700px 420px at 95% 90%, rgba(111, 220, 203, 0.09), transparent 70%);
 }
 .sm-hero__inner > *, .sm-split > * { min-width: 0; }
-.sm-hero__inner { display: grid; grid-template-columns: 1.02fr 1fr; gap: 2.5rem; align-items: center; }
+.sm-hero__inner { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); gap: 2.5rem; align-items: center; }
 .sm-hero__logo {
   width: 4.4rem; height: 4.4rem;
   filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.45));
@@ -178,7 +179,7 @@
 /* Stats */
 .sm-stats {
   list-style: none; margin: 3.5rem max(1rem, calc((100% - 60rem) / 2)) 0 !important;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; padding: 0 !important;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; padding: 0 !important;
   background: var(--ink-3); border: 1px solid var(--ink-3); border-radius: 0.8rem; overflow: hidden; max-width: 60rem;
 }
 .sm-stats li { margin: 0 !important; padding: 1.1rem 1rem; background: rgba(14, 16, 32, 0.92); text-align: center; }
@@ -210,12 +211,13 @@
 .sm-link:hover svg { transform: translateX(3px); }
 
 /* Split sections */
-.sm-split { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 3rem; align-items: start; }
+.sm-split { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 3rem; align-items: start; }
 .sm-split h2, .sm-split .sm-eyebrow { text-align: left; }
 .sm-points { list-style: none; margin: 1.2rem 0 1.4rem !important; padding: 0 !important; }
 .sm-points li { margin: 0 0 0.45rem !important; display: flex; gap: 0.55rem; align-items: center; font-size: 0.82rem; color: var(--cream); }
 .sm-points svg { color: var(--ore); flex: none; }
-.sm-stack { display: grid; gap: 1rem; }
+.sm-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.sm-stack > *, .sm-remedy, .sm-card, .sm-cmdgroup, .sm-doc { min-width: 0; }
 
 /* A finding, as the report shows it */
 .sm-finding {
@@ -247,7 +249,7 @@
 .sm-diff .hdr { color: var(--dim); }
 
 /* Remedy cards */
-.sm-remedies { margin-top: 2.8rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.sm-remedies { margin-top: 2.8rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .sm-remedy { padding: 1.4rem; border-radius: 0.8rem; background: linear-gradient(180deg, var(--ink-2), rgba(21, 24, 48, 0.4)); border: 1px solid var(--ink-3); border-top-width: 3px; }
 .sm-remedy--hook { border-top-color: var(--violet); }
 .sm-remedy--md { border-top-color: var(--ore); }
@@ -259,7 +261,7 @@
 .sm-remedy pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
 
 /* Feature cards */
-.sm-features { margin-top: 2.8rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.sm-features { margin-top: 2.8rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .sm-card {
   padding: 1.4rem; border-radius: 0.8rem;
   background: linear-gradient(180deg, var(--ink-2), rgba(21, 24, 48, 0.4));
@@ -289,14 +291,19 @@
 .sm-steps li:not(:last-child)::after { content: ""; position: absolute; left: 0.83rem; top: 1.9rem; bottom: -1.2rem; width: 1px; background: var(--ink-3); }
 .sm-steps h4 { margin: 0 0 0.4rem; font-size: 0.9rem; color: var(--cream); font-weight: 700; }
 .sm-steps p { margin: 0 0 0.5rem; font-size: 0.8rem; }
+/* The copy button sits beside the code, not over it: long commands scroll
+   inside the code and never slide under the button. */
 .sm-code {
-  position: relative; margin: 0;
-  padding: 0.75rem 3rem 0.75rem 0.9rem;
+  display: flex; align-items: flex-start; gap: 0.5rem; margin: 0;
+  padding: 0.45rem 0.45rem 0.45rem 0.9rem;
   background: var(--ink-4); border: 1px solid var(--ink-3); border-radius: 0.6rem;
-  overflow-x: auto;
 }
-.sm-code code { background: none; padding: 0; color: var(--cream); font-size: 0.7rem; line-height: 1.7; white-space: pre; }
-.sm-code .sm-copy { position: absolute; top: 0.45rem; right: 0.45rem; }
+.sm-code code {
+  order: 1; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin;
+  padding: 0.3rem 0 !important; background: none; color: var(--cream);
+  font-size: 0.7rem; line-height: 1.7; white-space: pre;
+}
+.sm-code .sm-copy { order: 2; }
 
 /* How it works */
 .sm-figure {
@@ -306,9 +313,10 @@
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
 }
 .sm-figure img { display: block; width: 100%; height: auto; }
+.sm-figure figcaption { display: none; }
 
 /* Commands */
-.sm-cmds { margin-top: 2.4rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.sm-cmds { margin-top: 2.4rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .sm-cmdgroup { padding: 1.3rem 1.3rem 0.9rem; background: var(--ink-4); border: 1px solid var(--ink-3); border-radius: 0.8rem; }
 .sm-cmdgroup h3 { margin: 0 0 0.8rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
 .sm-cmdgroup dl { margin: 0; }
@@ -317,7 +325,7 @@
 .sm-cmdgroup dd { margin: 0.05rem 0 0.7rem !important; font-size: 0.76rem; }
 
 /* Docs */
-.sm-docs { margin-top: 2.4rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; }
+.sm-docs { margin-top: 2.4rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
 .sm-doc {
   position: relative; display: block; padding: 1rem 2.2rem 1rem 1.1rem;
   background: var(--ink-2); border: 1px solid var(--ink-3); border-radius: 0.7rem;
@@ -350,14 +358,28 @@
 }
 
 @media (max-width: 60em) {
-  .sm-hero__inner, .sm-split { grid-template-columns: 1fr; }
-  .sm-features, .sm-cmds, .sm-remedies { grid-template-columns: 1fr 1fr; }
-  .sm-docs { grid-template-columns: 1fr 1fr; }
+  .sm-hero__inner, .sm-split { grid-template-columns: minmax(0, 1fr); }
+  .sm-features, .sm-cmds, .sm-remedies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sm-docs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 40em) {
   .sm-hero { padding-top: 2.5rem; }
-  .sm-features, .sm-cmds, .sm-docs, .sm-remedies { grid-template-columns: 1fr; }
-  .sm-stats { grid-template-columns: 1fr 1fr; }
+  .sm-code code { font-size: 0.66rem; }
+  /* Steps: number inline with the heading, code at full width. */
+  .sm-steps li { padding-left: 0; }
+  .sm-steps li::before { top: -0.15rem; width: 1.5rem; height: 1.5rem; font-size: 0.7rem; }
+  .sm-steps li:not(:last-child)::after { display: none; }
+  .sm-steps h4 { padding-left: 2.2rem; min-height: 1.5rem; }
+  /* The install command is one long path: let it wrap at any character. */
+  .sm-install { align-items: flex-start; }
+  .sm .sm-install code { white-space: normal; overflow-wrap: anywhere; line-height: 1.6; padding-top: 0.2rem; }
+  .sm-term__body { min-height: 0; padding: 0.85rem 0.9rem 1rem; line-height: 1.75; }
+  /* The diagram is too dense to read at phone width: say it can be opened. */
+  .sm-figure { border-radius: 0.6rem; }
+  .sm-figure figcaption { display: block; padding: 0.5rem 0.8rem; font-size: 0.68rem; color: var(--dim); text-align: center; background: var(--ink-2); border-top: 1px solid var(--ink-3); }
+  .sm-finding, .sm-remedy, .sm-card { padding: 1.1rem; }
+  .sm-features, .sm-cmds, .sm-docs, .sm-remedies { grid-template-columns: minmax(0, 1fr); }
+  .sm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sm-section { padding: 3.5rem 0; }
-  .sm-term__body { font-size: 0.66rem; }
+  .sm-term__body { font-size: 0.6rem; }
 }

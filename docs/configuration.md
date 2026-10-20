@@ -57,27 +57,27 @@ remedies:
 
 ## Keys
 
-| Key | Default | Flag | Meaning |
-|---|---|---|---|
-| `roots` | `[~/.claude/projects]` | `--root` | Directories searched for `*.jsonl` transcripts |
-| `window` | `90d` | `--since` | How far back to ingest and analyze: `90d`, `2w`, `12h` |
-| `min_count` | `3` | `--min-count` | Occurrences a finding needs to be reported |
-| `offline` | `false` | `--offline` | Never call the network |
-| `exclude_repos` | `[]` | | Globs of repos never ingested; a pattern also matches subdirectories |
-| `classifier.model` | `claude-haiku-5-5` | | Model for classification and proposal drafting |
-| `classifier.max_calls_per_run` | `500` | | Cap on API calls per run, across both uses |
-| `classifier.concurrency` | `4` | | Parallel classifier calls |
-| `embeddings.provider` | `auto` | | `auto` (ollama if it answers, else built-in), `ollama` or `hash` |
-| `embeddings.model` | `nomic-embed-text` | | ollama embedding model |
-| `embeddings.url` | `http://localhost:11434` | | ollama server |
-| `cluster.threshold` | `0` | | Cosine similarity to join a cluster; `0` uses the embedder's default (0.45 built-in, 0.78 ollama) |
-| `redact.patterns` | `[]` | | Extra regexes to redact, on top of the built-ins |
-| `remedies.hooks_dir` | `~/src/claude-hooks` | | Where hook proposals are written, and existing hooks are read |
-| `remedies.global_claude_md` | `~/.claude/CLAUDE.md` | | The CLAUDE.md for rules that span repos |
-| `remedies.skills_dir` | `~/.claude/skills` | | Where skill proposals go, and existing skills are read |
-| `remedies.settings` | `~/.claude/settings.json` | | Claude Code settings, read for existing hooks |
-| `db` | `$XDG_DATA_HOME/sminer/sminer.db` | `--db` | The database |
-| `patch_dir` | `$XDG_DATA_HOME/sminer/patches` | | Where accepted patches are written |
+| Key | Default | Meaning |
+|---|---|---|
+| `roots` | `[~/.claude/projects]` | Directories searched for `*.jsonl` transcripts. Flag: `--root` |
+| `window` | `90d` | How far back to ingest and analyze: `90d`, `2w`, `12h`. Flag: `--since` |
+| `min_count` | `3` | Occurrences a finding needs to be reported. Flag: `--min-count` |
+| `offline` | `false` | Never call the network. Flag: `--offline` |
+| `exclude_repos` | `[]` | Globs of repos never ingested; a pattern also matches subdirectories |
+| `classifier.model` | `claude-haiku-5-5` | Model for classification and proposal drafting |
+| `classifier.max_calls_per_run` | `500` | Cap on API calls per run, across both uses |
+| `classifier.concurrency` | `4` | Parallel classifier calls |
+| `embeddings.provider` | `auto` | `auto` (ollama if it answers, else built-in), `ollama` or `hash` |
+| `embeddings.model` | `nomic-embed-text` | ollama embedding model |
+| `embeddings.url` | `http://localhost:11434` | ollama server |
+| `cluster.threshold` | `0` | Cosine similarity to join a cluster; `0` uses the embedder's default (0.45 built-in, 0.78 ollama) |
+| `redact.patterns` | `[]` | Extra regexes to redact, on top of the built-ins |
+| `remedies.hooks_dir` | `~/src/claude-hooks` | Where hook proposals are written, and existing hooks are read |
+| `remedies.global_claude_md` | `~/.claude/CLAUDE.md` | The CLAUDE.md for rules that span repos |
+| `remedies.skills_dir` | `~/.claude/skills` | Where skill proposals go, and existing skills are read |
+| `remedies.settings` | `~/.claude/settings.json` | Claude Code settings, read for existing hooks |
+| `db` | `$XDG_DATA_HOME/sminer/sminer.db` | The database. Flag: `--db` |
+| `patch_dir` | `$XDG_DATA_HOME/sminer/patches` | Where accepted patches are written |
 
 Paths may start with `~`. Invalid values (a bad `window`, a `min_count` below 1, an unknown `embeddings.provider`) are rejected up front with exit code 2.
 
