@@ -195,7 +195,7 @@ func TestRunOffline(t *testing.T) {
 		"testify":         "claude_md",
 		"package-lock":    "hook",
 		"`go test`":       "claude_md",
-		"*.go files":      "claude_md",
+		"hand-correct":    "claude_md",
 		"Before commit":   "skill",
 		"no-lockfiles.sh": "claude_md",
 	}

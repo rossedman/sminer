@@ -53,8 +53,36 @@ var (
 	modifiedRe    = regexp.MustCompile(`Note: (\S+) was modified, either by the user or by a linter`)
 	commandNameRe = regexp.MustCompile(`<command-name>([^<]*)</command-name>`)
 	// HookRe recognises guardrail output in tool results and system events.
-	HookRe = regexp.MustCompile(`(?i)(\b(PreToolUse|PostToolUse|UserPromptSubmit|PreCompact)\b[^\n]{0,60}\bhook\b|\bhook\b[^\n]{0,60}\b(blocked|denied|error|rejected|failed)\b|\bblocked by (a |the )?[\w-]* ?hook\b)`)
+	// Claude Code names the hook event ("PreToolUse:Bash hook error: ...")
+	// on the first line; matching only there keeps file contents and command
+	// output that merely mention hooks from counting as blocks.
+	HookRe = regexp.MustCompile(`(?i)(\b(PreToolUse|PostToolUse|UserPromptSubmit|PreCompact)(:\w+)?\b[^\n]{0,60}\bhook\b|\bblocked by (a |the )?[\w-]* ?hook\b)`)
+	// harnessRe matches messages the app injects into the user role, such as
+	// <task-notification> or <ci-monitor-event>. They start with a
+	// hyphenated tag, which hand-typed prompts practically never do.
+	harnessRe   = regexp.MustCompile(`^<[a-z]+(-[a-z]+)+[\s>]`)
+	interruptRe = regexp.MustCompile(`^\[Request interrupted by user[^\]]*\]\s*`)
 )
+
+// IsHarnessText reports whether a user-role message was injected by the app
+// rather than typed by the user.
+func IsHarnessText(s string) bool {
+	return harnessRe.MatchString(strings.TrimSpace(s))
+}
+
+// StripInterrupt removes a leading "[Request interrupted by user...]"
+// marker, leaving whatever the user typed after it.
+func StripInterrupt(s string) string {
+	return strings.TrimSpace(interruptRe.ReplaceAllString(strings.TrimSpace(s), ""))
+}
+
+// IsHook checks the first line of s for guardrail output.
+func IsHook(s string) bool {
+	if !mentionsHook(s) {
+		return false
+	}
+	return HookRe.MatchString(textutil.FirstLine(strings.TrimSpace(s)))
+}
 
 // Options control one ingest run.
 type Options struct {
@@ -487,7 +515,7 @@ func (x *extractor) extract(ev transcript.Event) []store.Turn {
 					continue
 				}
 				text := strings.TrimSpace(sysReminderRe.ReplaceAllString(b.Text, ""))
-				if text == "" || strings.Contains(text, "<local-command-stdout>") || strings.HasPrefix(text, "Caveat: ") {
+				if text == "" || strings.Contains(text, "<local-command-stdout>") || strings.HasPrefix(text, "Caveat: ") || IsHarnessText(text) {
 					continue
 				}
 				if m := commandNameRe.FindStringSubmatch(text); m != nil {
@@ -500,6 +528,7 @@ func (x *extractor) extract(ev transcript.Event) []store.Turn {
 				kind := KindUserText
 				if strings.HasPrefix(text, interruptText) {
 					kind = KindInterrupt
+					text = StripInterrupt(text)
 				}
 				t := x.turn(ev, i, kind)
 				t.Role = "user"
@@ -535,7 +564,7 @@ func (x *extractor) extract(ev transcript.Event) []store.Turn {
 			}
 		}
 	case "system":
-		if mentionsHook(head(ev.Text)) && HookRe.MatchString(head(ev.Text)) {
+		if IsHook(head(ev.Text)) {
 			t := x.turn(ev, 0, KindHook)
 			t.Role = "system"
 			t.Text = x.clean(ev.Text, maxOtherText)
@@ -575,7 +604,7 @@ func (x *extractor) toolResult(ev transcript.Event, i int, b transcript.Block) [
 	case strings.HasPrefix(strings.TrimSpace(text), interruptText):
 		t.Kind = KindInterrupt
 		t.Text = ""
-	case mentionsHook(head(text)) && HookRe.MatchString(head(text)):
+	case IsHook(head(text)):
 		t.Kind = KindHook
 		t.IsError = true
 		t.Text = x.clean(text, maxOtherText)

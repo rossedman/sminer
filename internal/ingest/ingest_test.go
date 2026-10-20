@@ -193,6 +193,18 @@ func TestDBPermissions(t *testing.T) {
 	}
 }
 
+func TestNoiseHelpers(t *testing.T) {
+	if !IsHarnessText("<task-notification>\n<task-type>x</task-type>") || IsHarnessText("<div> is wrong here") || IsHarnessText("no, use pnpm") {
+		t.Error("IsHarnessText")
+	}
+	if got := StripInterrupt("[Request interrupted by user for tool use]\nkeep vendor"); got != "keep vendor" {
+		t.Errorf("StripInterrupt = %q", got)
+	}
+	if !IsHook("PreToolUse:Edit hook error: [x.sh]: no") || IsHook("diff --git a/x b/x\n+ hook failed") || IsHook("export type Hook = { error: string }") {
+		t.Error("IsHook")
+	}
+}
+
 // fixupSession writes a one-session transcript from steps of the form
 // {"write", path, content}, {"bash", command} and {"read", path, content},
 // ingests it and returns the number of fix-up turns.

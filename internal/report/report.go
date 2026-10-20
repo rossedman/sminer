@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/rossedman/sminer/internal/cluster"
 	"github.com/rossedman/sminer/internal/remedy"
 	"github.com/rossedman/sminer/internal/store"
 	"github.com/rossedman/sminer/internal/textutil"
@@ -21,7 +24,7 @@ type Options struct {
 	Repo     string
 	MinCount int
 	Now      time.Time
-	// MaxExcerpts per finding (default 3).
+	// MaxExcerpts per finding (default 2).
 	MaxExcerpts int
 }
 
@@ -52,6 +55,7 @@ type Finding struct {
 	FirstSeen   time.Time       `json:"first_seen"`
 	LastSeen    time.Time       `json:"last_seen"`
 	ByType      map[string]int  `json:"by_type"`
+	FileKinds   map[string]int  `json:"file_kinds,omitempty"`
 	AdoptedAt   *time.Time      `json:"adopted_at,omitempty"`
 	Excerpts    []Excerpt       `json:"excerpts"`
 }
@@ -84,7 +88,7 @@ func Build(st *store.Store, opt Options) (Report, error) {
 		opt.MinCount = 3
 	}
 	if opt.MaxExcerpts <= 0 {
-		opt.MaxExcerpts = 3
+		opt.MaxExcerpts = 2
 	}
 	if opt.Now.IsZero() {
 		opt.Now = time.Now()
@@ -223,6 +227,12 @@ func View(f store.Finding, sigs []store.Signal, sessions map[string]store.Sessio
 			repos[s.Repo] = true
 		}
 		v.ByType[s.Type]++
+		if s.Type == store.ManualFixup && s.Key != "" {
+			if v.FileKinds == nil {
+				v.FileKinds = map[string]int{}
+			}
+			v.FileKinds[s.Key]++
+		}
 		if v.FirstSeen.IsZero() || s.TS.Before(v.FirstSeen) {
 			v.FirstSeen = s.TS
 		}
@@ -248,9 +258,14 @@ func excerpts(sigs []store.Signal, sessions map[string]store.Session, n int) []E
 		cwd := sessions[s.SessionID].Cwd
 		resume := "claude --resume " + s.SessionID
 		if cwd != "" {
-			resume = fmt.Sprintf("cd %s && %s", cwd, resume)
+			resume = fmt.Sprintf("cd %s && %s", shellQuote(ShortPath(cwd)), resume)
 		}
-		out = append(out, Excerpt{Type: s.Type, Text: textutil.Truncate(textutil.OneLine(s.Excerpt), 280), Repo: s.Repo,
+		text := s.Excerpt
+		if s.Repo != "" {
+			text = strings.ReplaceAll(text, strings.TrimRight(s.Repo, "/")+"/", "")
+		}
+		text = ShortPath(text)
+		out = append(out, Excerpt{Type: s.Type, Text: textutil.Truncate(textutil.OneLine(text), 280), Repo: s.Repo,
 			SessionID: s.SessionID, Resume: resume, TS: s.TS})
 	}
 	for pass := 0; pass < 2 && len(out) < n; pass++ {
@@ -283,36 +298,62 @@ func WriteJSON(w io.Writer, r Report) error {
 }
 
 var remedyLabel = map[string]string{
-	remedy.Hook:     "Hook",
+	remedy.Hook:     "New hook",
 	remedy.ClaudeMD: "CLAUDE.md line",
-	remedy.Skill:    "Skill",
+	remedy.Skill:    "New skill",
 	remedy.Ignore:   "Ignore",
 }
 
-// WriteMarkdown writes the human report.
+// signalNames are the plain-language singular and plural for each signal
+// type, in the order the summary lists them.
+var signalNames = []struct{ typ, one, many string }{
+	{store.Correction, "correction", "corrections"},
+	{store.Interrupt, "interrupt", "interrupts"},
+	{store.Rewind, "rewind", "rewinds"},
+	{store.RepeatedInstruction, "repeated instruction", "repeated instructions"},
+	{store.HookBlock, "hook block", "hook blocks"},
+	{store.ToolFailure, "command failing in a loop", "commands failing in a loop"},
+	{store.ManualFixup, "hand-fixed edit", "hand-fixed edits"},
+}
+
+func signalSummary(counts map[string]int) string {
+	var parts []string
+	for _, n := range signalNames {
+		switch c := counts[n.typ]; {
+		case c == 1:
+			parts = append(parts, "1 "+n.one)
+		case c > 1:
+			parts = append(parts, fmt.Sprintf("%d %s", c, n.many))
+		}
+	}
+	return strings.Join(parts, " · ")
+}
+
+// WriteMarkdown writes the human report: a summary table first, then one
+// short section per finding.
 func WriteMarkdown(w io.Writer, r Report) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# sminer report\n\n")
 	scope := "all repos"
 	if r.Repo != "" {
-		scope = "`" + r.Repo + "`"
+		scope = "`" + ShortRepo(r.Repo) + "`"
 	}
-	fmt.Fprintf(&b, "Generated %s · window since %s · %s · %d sessions\n\n",
-		r.GeneratedAt.Format("2006-01-02 15:04 MST"), r.Since.Format("2006-01-02"), scope, r.Sessions)
-
-	if len(r.SignalCounts) > 0 {
-		b.WriteString("| Signal | Count |\n|---|---:|\n")
-		for _, t := range []string{store.Correction, store.Interrupt, store.Rewind, store.RepeatedInstruction, store.HookBlock, store.ToolFailure, store.ManualFixup} {
-			if c := r.SignalCounts[t]; c > 0 {
-				fmt.Fprintf(&b, "| %s | %d |\n", t, c)
-			}
-		}
-		b.WriteString("\n")
+	fmt.Fprintf(&b, "%d sessions since %s · %s · generated %s\n\n",
+		r.Sessions, r.Since.Format("2006-01-02"), scope, r.GeneratedAt.Format("2006-01-02 15:04 MST"))
+	if s := signalSummary(r.SignalCounts); s != "" {
+		fmt.Fprintf(&b, "**Friction seen:** %s\n\n", s)
 	}
 
 	fmt.Fprintf(&b, "## Findings (%d)\n\n", len(r.Findings))
 	if len(r.Findings) == 0 {
 		b.WriteString("No recurring findings at this threshold. Try a lower `--min-count` or a longer `--since`.\n\n")
+	} else {
+		b.WriteString("| # | Finding | Fix | Seen | ID |\n|---:|---|---|---|---|\n")
+		for i, f := range r.Findings {
+			fmt.Fprintf(&b, "| %d | %s | %s | %d× in %d sessions | `%s` |\n", i+1,
+				escapePipes(textutil.Truncate(f.Title, 70)), remedyLabel[f.Remedy], f.Occurrences, f.Sessions, f.ID)
+		}
+		b.WriteString("\nPreview a fix with `sminer finding accept <id> --preview`, apply it without `--preview`, or drop it with `sminer finding dismiss <id>`. `sminer review` walks through them one at a time.\n\n")
 	}
 	for i, f := range r.Findings {
 		writeFinding(&b, i+1, f)
@@ -347,16 +388,12 @@ func WriteMarkdown(w io.Writer, r Report) error {
 		b.WriteString("\n")
 	}
 	if len(r.UnknownTypes) > 0 {
-		b.WriteString("## Parser notes\n\nUnknown transcript event types, counted and skipped:\n\n")
 		var ks []string
 		for k := range r.UnknownTypes {
 			ks = append(ks, k)
 		}
 		sort.Strings(ks)
-		for _, k := range ks {
-			fmt.Fprintf(&b, "- `%s`: %d\n", k, r.UnknownTypes[k])
-		}
-		b.WriteString("\n")
+		fmt.Fprintf(&b, "<sub>Skipped %d transcript event types sminer doesn't read (%s). Counts are in `--json`.</sub>\n", len(ks), textutil.Truncate(strings.Join(ks, ", "), 160))
 	}
 	_, err := io.WriteString(w, b.String())
 	return err
@@ -371,49 +408,109 @@ func writeFinding(b *strings.Builder, n int, f Finding) {
 		}
 	}
 	fmt.Fprintf(b, "### %d. %s\n\n", n, f.Title)
-	fmt.Fprintf(b, "`%s` · **%s** · score %.0f%s\n\n", f.ID, remedyLabel[f.Remedy], f.Score, status)
-	var types []string
-	for t, c := range f.ByType {
-		types = append(types, fmt.Sprintf("%s %d", t, c))
+
+	fix := remedyLabel[f.Remedy]
+	if f.Target != "" {
+		fix += " → `" + ShortPath(f.Target) + "`"
 	}
-	sort.Strings(types)
-	fmt.Fprintf(b, "- %d occurrences in %d sessions across %d repo(s) (%s)\n", f.Occurrences, f.Sessions, max(1, len(f.Repos)), strings.Join(types, ", "))
-	fmt.Fprintf(b, "- First seen %s, last seen %s\n", f.FirstSeen.Format("2006-01-02"), f.LastSeen.Format("2006-01-02"))
+	fmt.Fprintf(b, "- **Fix:** %s%s\n", fix, status)
+	repos := ""
+	if len(f.Repos) > 1 {
+		repos = fmt.Sprintf(" across %d repos", len(f.Repos))
+	}
+	fmt.Fprintf(b, "- **Seen:** %d times in %d sessions%s, %s to %s\n", f.Occurrences, f.Sessions, repos,
+		f.FirstSeen.Format("Jan 2"), f.LastSeen.Format("Jan 2"))
 	if len(f.Repos) > 0 {
-		fmt.Fprintf(b, "- Repos: %s\n", strings.Join(quoteAll(f.Repos), ", "))
+		fmt.Fprintf(b, "- **Repos:** %s\n", listSome(shortRepos(f.Repos), 3))
+	}
+	if len(f.FileKinds) > 0 {
+		var parts []string
+		for _, k := range cluster.SortKinds(f.FileKinds) {
+			parts = append(parts, fmt.Sprintf("`%s` %d", k.Kind, k.Count))
+		}
+		fmt.Fprintf(b, "- **By file:** %s\n", listSome(parts, 6))
 	}
 	b.WriteString("\n")
 	for _, e := range f.Excerpts {
-		fmt.Fprintf(b, "> %s\n>\n> — %s, %s · `%s`\n\n", e.Text, e.Type, e.TS.Format("2006-01-02"), e.Resume)
+		where := e.TS.Format("Jan 2")
+		if e.Repo != "" {
+			where += " · " + ShortRepo(e.Repo)
+		}
+		fmt.Fprintf(b, "> %s\n>\n> <sub>%s</sub>\n\n", e.Text, where)
 	}
-	b.WriteString("**Proposal**")
-	if f.Target != "" {
-		fmt.Fprintf(b, " → `%s`", f.Target)
-	}
-	b.WriteString("\n\n")
+
 	p := f.Proposal
 	switch f.Remedy {
 	case remedy.Hook:
 		if u := p.Unheeded; u != nil {
 			fmt.Fprintf(b, "Already instructed at `%s`, but corrected %d times since that file changed. Escalating to a hook.\n\n", u.Where, u.Since)
 		}
-		fmt.Fprintf(b, "PreToolUse hook on `%s`: block when `%s` matches `%s`.\n\n> %s\n\n", p.Matcher, p.Field, p.Pattern, p.Rule)
+		fmt.Fprintf(b, "**Proposed hook:** on `%s`, block when `%s` matches `%s`.\n\n> %s\n\n", p.Matcher, p.Field, p.Pattern, p.Rule)
 	case remedy.Skill:
-		fmt.Fprintf(b, "Skill `%s`: %s\n\n", p.SkillName, p.Description)
+		fmt.Fprintf(b, "**Proposed skill** `%s`: %s\n\n", p.SkillName, p.Description)
 		for i, s := range p.Steps {
 			fmt.Fprintf(b, "%d. %s\n", i+1, s)
 		}
 		b.WriteString("\n")
 	default:
-		fmt.Fprintf(b, "```diff\n+ - %s\n```\n\n", p.Rule)
+		fmt.Fprintf(b, "**Proposed line:**\n\n```diff\n+ - %s\n```\n\n", p.Rule)
 	}
 	switch {
 	case f.Status == store.StatusOpen:
-		fmt.Fprintf(b, "Preview with `sminer finding accept %s --preview`; dismiss with `sminer finding dismiss %s`.\n\n", f.ID, f.ID)
+		fmt.Fprintf(b, "`sminer finding accept %s --preview` · `sminer finding dismiss %s`\n\n", f.ID, f.ID)
 	case f.Status == store.StatusAccepted && p.Unheeded != nil:
 		// The accepted CLAUDE.md line didn't stick; the hook is a new proposal.
 		fmt.Fprintf(b, "To adopt the hook, `sminer finding reopen %s`, then accept it.\n\n", f.ID)
 	}
+	if len(f.Excerpts) > 0 {
+		fmt.Fprintf(b, "<sub>Latest session: `%s`</sub>\n\n", f.Excerpts[0].Resume)
+	}
+}
+
+// ShortRepo turns a repo path into something readable: owner/name for
+// checkouts, with worktree suffixes dropped.
+func ShortRepo(p string) string {
+	if i := strings.Index(p, "/.claude/worktrees/"); i >= 0 {
+		p = p[:i]
+	}
+	p = strings.TrimRight(p, "/")
+	if home, err := os.UserHomeDir(); err == nil && strings.Contains(p, "/scratch-workspaces/") && strings.HasPrefix(p, home) {
+		return "scratch/" + filepath.Base(p)
+	}
+	parts := strings.Split(p, "/")
+	if len(parts) >= 2 {
+		return strings.Join(parts[len(parts)-2:], "/")
+	}
+	return p
+}
+
+func shortRepos(rs []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, r := range rs {
+		s := "`" + ShortRepo(r) + "`"
+		if !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// ShortPath replaces the home directory with ~.
+func ShortPath(p string) string {
+	if home, err := os.UserHomeDir(); err == nil && home != "" && strings.HasPrefix(p, home+"/") {
+		return "~" + p[len(home):]
+	}
+	return p
+}
+
+// listSome joins the first n items and counts the rest.
+func listSome(items []string, n int) string {
+	if len(items) <= n {
+		return strings.Join(items, ", ")
+	}
+	return fmt.Sprintf("%s and %d more", strings.Join(items[:n], ", "), len(items)-n)
 }
 
 func quoteAll(ss []string) []string {
@@ -425,3 +522,16 @@ func quoteAll(ss []string) []string {
 }
 
 func escapePipes(s string) string { return strings.ReplaceAll(s, "|", `\|`) }
+
+// shellQuote quotes p for a copy-pasted cd when it has spaces; a leading ~
+// stays outside the quotes so the shell still expands it.
+func shellQuote(p string) string {
+	if !strings.ContainsAny(p, " '\"$") {
+		return p
+	}
+	rest, prefix := p, ""
+	if strings.HasPrefix(p, "~/") {
+		prefix, rest = "~/", p[2:]
+	}
+	return prefix + "'" + strings.ReplaceAll(rest, "'", `'\''`) + "'"
+}

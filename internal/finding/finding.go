@@ -27,7 +27,8 @@ type Service struct {
 var Statuses = []string{store.StatusOpen, store.StatusAccepted, store.StatusDismissed, "all"}
 
 // List returns findings with the given status, ranked by score. Counts cover
-// every linked signal, not just the analysis window.
+// every linked signal, not just the analysis window. Open findings with no
+// signals left are skipped.
 func (s Service) List(status string) ([]report.Finding, error) {
 	where, args := "", []any{}
 	switch status {
@@ -50,6 +51,11 @@ func (s Service) List(status string) ([]report.Finding, error) {
 		v, err := s.view(f, sessions, 0)
 		if err != nil {
 			return nil, err
+		}
+		// An open finding whose signals were all re-filed or filtered out
+		// by a later analysis has nothing left to act on.
+		if v.Occurrences == 0 && f.Status == store.StatusOpen {
+			continue
 		}
 		out = append(out, v)
 	}
