@@ -83,6 +83,8 @@ A draft `SKILL.md` in your skills directory, with the steps taken from the instr
 
 ## Accepting a finding
 
+The quickest way through a batch is `sminer review`, a full-screen browser where `p` shows a finding's patch, `a` accepts it and `d` dismisses it (see the [CLI reference](cli.md#sminer-review)). Everything it does is also a command:
+
 ```bash
 sminer finding accept Fc72cc0 --preview   # print the patch, change nothing
 sminer finding accept Fc72cc0             # write it, print its path

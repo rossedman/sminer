@@ -69,11 +69,15 @@ func (a *app) findingTable(fs []report.Finding) error {
 }
 
 func (a *app) findingCard(f report.Finding) string {
-	th := a.theme()
-	width := a.width()
+	return "\n" + renderCard(a.theme(), f, a.width(), true)
+}
+
+// renderCard draws a finding as a card at most width cells wide; hint adds
+// the next-step line for open findings.
+func renderCard(th ui.Theme, f report.Finding, width int, hint bool) string {
 	var b strings.Builder
 
-	b.WriteString("\n" + th.Badge(f.Remedy) + "  " + style(th.ID, f.ID) + "  " + style(th.Title, f.Title) + "\n")
+	b.WriteString(th.Badge(f.Remedy) + "  " + style(th.ID, f.ID) + "  " + style(th.Title, f.Title) + "\n")
 	facts := []string{th.Status(f.Status), fmt.Sprintf("score %.0f", f.Score),
 		fmt.Sprintf("%d occurrences in %d sessions", f.Occurrences, f.Sessions)}
 	if f.AdoptedAt != nil {
@@ -93,7 +97,7 @@ func (a *app) findingCard(f report.Finding) string {
 
 	box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(th.RemedyColor(f.Remedy)).
 		Padding(0, 1).Width(min(width, 96))
-	b.WriteString("\n" + box.Render(a.proposalView(f)) + "\n")
+	b.WriteString("\n" + box.Render(renderProposal(th, f)) + "\n")
 
 	if len(f.Excerpts) > 0 {
 		b.WriteString("\n" + th.Rule(fmt.Sprintf("Evidence (%d)", len(f.Excerpts)), min(width, 96)) + "\n\n")
@@ -109,14 +113,13 @@ func (a *app) findingCard(f report.Finding) string {
 			b.WriteString(style(th.Faint, "  ↳ "+e.Resume) + "\n\n")
 		}
 	}
-	if f.Status == "open" && f.Remedy != remedy.Ignore {
+	if hint && f.Status == "open" && f.Remedy != remedy.Ignore {
 		b.WriteString(style(th.Faint, fmt.Sprintf("Preview the patch with 'sminer finding accept %s --preview'.", f.ID)) + "\n")
 	}
 	return b.String()
 }
 
-func (a *app) proposalView(f report.Finding) string {
-	th := a.theme()
+func renderProposal(th ui.Theme, f report.Finding) string {
 	p := f.Proposal
 	label := style(th.Heading, "Proposal")
 	switch f.Remedy {

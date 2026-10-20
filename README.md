@@ -63,6 +63,7 @@ Mining
   sminer report    [--since 90d] [--repo PATH] [--min-count 3] [-o FILE]
 
 Acting on findings
+  sminer review           [--status S] [--patch-dir DIR]
   sminer finding list     [--status open|accepted|dismissed|all]
   sminer finding show     <id>
   sminer finding accept   <id>... [--preview] [--patch-dir DIR]
@@ -86,6 +87,7 @@ Global flags
 - **ingest** is incremental. Each transcript is re-read only from the byte offset where the last run stopped, and a partially written last line is left for the next run.
 - **analyze** recomputes signals for sessions with new turns, confirms candidates with the classifier (unless offline), clusters the signals into findings, and routes each finding to a remedy.
 - **report** prints Markdown on stdout, ranked by `count × weight × repos`. With `--output FILE` it writes the file atomically and puts `findings.json` beside it.
+- **review** is a full-screen browser for working through findings: the list beside the selected finding, `p` for its patch, `a` to accept, `d` to dismiss, `space` to mark several. The patch paths it wrote go to stdout when you quit.
 - **finding accept** renders the patch against the target as it is right now, writes it to the patch directory, prints its path, and records the adoption date so `finding trend` can show whether the fix worked. `--preview` prints the patch and changes nothing. CLAUDE.md lines accepted together for the same file share one patch.
 - **label** walks you through real turns from your own transcripts and records which are corrections, so `eval` measures detection on your sessions.
 - **finding reopen** undoes accept or dismiss.

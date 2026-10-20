@@ -90,7 +90,13 @@ Fc72cc0  open  hook       9  7  27  Never hand-edit package-lock.json
 Fcd5b9b  open  claude_md  4  4  24  Use table-driven tests, not testify
 ```
 
-Look at every excerpt behind one:
+The easiest way to work through them is the full-screen browser. Move with the arrow keys, press `p` to see a finding's patch, `a` to accept it and `d` to dismiss it:
+
+```bash
+sminer review
+```
+
+Or do the same one command at a time. Look at every excerpt behind one:
 
 ```bash
 sminer finding show Fc72cc0

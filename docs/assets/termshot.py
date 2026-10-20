@@ -12,43 +12,78 @@ import pyte
 from playwright.sync_api import sync_playwright
 
 out, cols, rows, cmd, keys = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], sys.argv[5:]
-screen = pyte.HistoryScreen(cols, rows, history=2000)
+class Screen(pyte.HistoryScreen):
+    # pyte lacks REP (CSI n b, repeat the last character), which Bubble Tea's
+    # renderer uses for runs of the same character, such as borders.
+    last = " "
+    def draw(self, data):
+        if data:
+            self.last = data[-1]
+        super().draw(data)
+    def rep(self, n=1, *args, **kw):
+        self.draw(self.last * max(1, n))
+
+pyte.Stream.csi["b"] = "rep"
+screen = Screen(cols, rows, history=2000)
 stream = pyte.ByteStream(screen)
 screen.set_mode(pyte.modes.LNM)
 
-pid, fd = pty.fork()
-if pid == 0:
-    os.environ["COLUMNS"], os.environ["LINES"] = str(cols), str(rows)
-    os.execvp("bash", ["bash", "-c", cmd])
-fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
-raw = bytearray()
-def pump(t):
-    end = time.time() + t
-    while time.time() < end:
-        r, _, _ = select.select([fd], [], [], 0.05)
-        if r:
-            try:
-                b = os.read(fd, 65536)
-            except OSError:
-                return False
-            if not b:
-                return False
-            raw.extend(b); stream.feed(re.sub(rb'\x1b\[[<>=?][0-9;$]*[a-zA-Z]', b'', b))
-    return True
-pump(1.2)
-snap = False
-for k in keys:
-    if k == "!":
-        snap = True; break
-    if k.startswith("@"):
-        pump(float(k[1:])); continue
-    os.write(fd, k.encode().decode("unicode_escape").encode()); pump(0.6)
-while not snap and pump(0.3):
-    try:
-        if os.waitpid(pid, os.WNOHANG)[0]:
-            pump(0.2); break
-    except ChildProcessError:
-        break
+if os.environ.get("TERMSHOT_TMUX"):
+    # tmux is a real terminal: let it run the program, then draw its screen.
+    import subprocess, shlex
+    sock = "termshot%d" % os.getpid()
+    tm = lambda *a: subprocess.run(["tmux", "-L", sock] + list(a), capture_output=True, text=True).stdout
+    tm("new-session", "-d", "-x", str(cols), "-y", str(rows), "bash", "-c", cmd + "; sleep 600")
+    time.sleep(1.5)
+    for k in keys:
+        if k == "!":
+            break
+        if k.startswith("@"):
+            time.sleep(float(k[1:])); continue
+        tm("send-keys", "-l", k.encode().decode("unicode_escape")); time.sleep(0.6)
+    time.sleep(0.8)
+    shot = tm("capture-pane", "-p", "-e", "-S", "-2000")
+    tm("kill-server")
+    screen = Screen(cols, max(rows, shot.count("\n") + 1), history=0)
+    stream = pyte.ByteStream(screen)
+    screen.set_mode(pyte.modes.LNM)
+    stream.feed(shot.encode())
+    rows = screen.lines
+    snap = False
+else:
+    pid, fd = pty.fork()
+    if pid == 0:
+        os.environ["COLUMNS"], os.environ["LINES"] = str(cols), str(rows)
+        os.execvp("bash", ["bash", "-c", cmd])
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+    raw = bytearray()
+    def pump(t):
+        end = time.time() + t
+        while time.time() < end:
+            r, _, _ = select.select([fd], [], [], 0.05)
+            if r:
+                try:
+                    b = os.read(fd, 65536)
+                except OSError:
+                    return False
+                if not b:
+                    return False
+                raw.extend(b); stream.feed(re.sub(rb'\x1b\[[<>=?][0-9;$]*[a-zA-Z]', b'', b))
+        return True
+    pump(1.2)
+    snap = False
+    for k in keys:
+        if k == "!":
+            snap = True; break
+        if k.startswith("@"):
+            pump(float(k[1:])); continue
+        os.write(fd, k.encode().decode("unicode_escape").encode()); pump(0.6)
+    while not snap and pump(0.3):
+        try:
+            if os.waitpid(pid, os.WNOHANG)[0]:
+                pump(0.2); break
+        except ChildProcessError:
+            break
 
 # Gather lines: scrolled-off history then the screen; trim trailing blanks.
 def line_cells(line):

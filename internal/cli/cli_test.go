@@ -117,6 +117,8 @@ func TestHelpAndUsageErrors(t *testing.T) {
 		{[]string{"--help"}, ExitOK, "ACTING ON FINDINGS", ""},
 		{[]string{"help", "finding"}, ExitOK, "sminer finding list", ""},
 		{[]string{"finding", "accept", "-h"}, ExitOK, "--preview", ""},
+		{[]string{"review"}, ExitUsage, "", "sminer finding list"},
+		{[]string{"review", "--status", "bogus"}, ExitUsage, "", "unknown status"},
 		{[]string{"analyz"}, ExitUsage, "", "Did you mean this?"},
 		{[]string{"run", "--bogus"}, ExitUsage, "", "run 'sminer run --help'"},
 		{[]string{"finding", "show"}, ExitUsage, "", "accepts 1 arg"},
