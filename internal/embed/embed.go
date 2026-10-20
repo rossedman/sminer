@@ -28,7 +28,8 @@ type Embedder interface {
 }
 
 // New picks an embedder from config. "auto" uses ollama when it answers on
-// its URL and falls back to the hashed model otherwise.
+// its URL and has the model pulled, and falls back to the hashed model
+// otherwise.
 func New(cfg config.Embeddings) (Embedder, error) {
 	switch cfg.Provider {
 	case "", "auto":
@@ -132,15 +133,36 @@ func (o *Ollama) http() *http.Client {
 	return o.client
 }
 
-// Available reports whether the server answers quickly.
+// Available reports whether the server answers quickly and has the model
+// pulled. A bare model name matches its ":latest" tag.
 func (o *Ollama) Available() bool {
 	c := &http.Client{Timeout: 400 * time.Millisecond}
 	resp, err := c.Get(strings.TrimRight(o.URL, "/") + "/api/tags")
 	if err != nil {
 		return false
 	}
-	resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return false
+	}
+	var tags struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&tags) != nil {
+		return false
+	}
+	want := o.Model
+	if !strings.Contains(want, ":") {
+		want += ":latest"
+	}
+	for _, m := range tags.Models {
+		if m.Name == o.Model || m.Name == want {
+			return true
+		}
+	}
+	return false
 }
 
 func (o *Ollama) Embed(texts []string) ([][]float32, error) {

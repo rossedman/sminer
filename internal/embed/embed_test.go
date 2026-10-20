@@ -2,7 +2,11 @@ package embed
 
 import (
 	"math/rand"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/rossedman/sminer/internal/config"
 )
 
 func TestHashSimilarity(t *testing.T) {
@@ -90,6 +94,26 @@ func TestGreedyNoDrift(t *testing.T) {
 	for c, n := range sizes {
 		if n > 3 {
 			t.Errorf("cluster %d absorbed %d unrelated texts", c, n)
+		}
+	}
+}
+
+func TestAutoNeedsPulledModel(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"models":[{"name":"llama3:latest"},{"name":"nomic-embed-text:latest"}]}`))
+	}))
+	defer srv.Close()
+	for model, want := range map[string]string{
+		"nomic-embed-text":        "ollama:nomic-embed-text",
+		"nomic-embed-text:latest": "ollama:nomic-embed-text:latest",
+		"mxbai-embed-large":       Hash{}.Name(),
+	} {
+		e, err := New(config.Embeddings{Provider: "auto", URL: srv.URL, Model: model})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e.Name() != want {
+			t.Errorf("model %q: got %s, want %s", model, e.Name(), want)
 		}
 	}
 }
