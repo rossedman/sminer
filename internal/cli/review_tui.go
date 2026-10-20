@@ -70,7 +70,7 @@ type reviewModel struct {
 func newReviewModel(th ui.Theme, svc reviewer, dir, status string) *reviewModel {
 	m := &reviewModel{th: th, svc: svc, dir: dir, marked: map[string]bool{}, cache: map[string]report.Finding{},
 		applies: map[string]string{},
-		width: 100, height: 30}
+		width:   100, height: 30}
 	for i, f := range reviewFilters {
 		if f == status {
 			m.filter = i
