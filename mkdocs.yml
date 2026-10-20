@@ -33,6 +33,7 @@ nav:
   - Project:
       - Evaluation: evaluation.md
       - Design and development: design.md
+      - Releasing: releasing.md
 
 theme:
   name: material

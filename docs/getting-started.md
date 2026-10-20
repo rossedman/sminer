@@ -4,11 +4,29 @@ sminer reads the transcripts Claude Code already keeps on your machine, finds th
 
 ## Install
 
-sminer is a single Go binary with no cgo and no runtime dependencies.
+sminer is a single binary with no runtime dependencies.
 
-```bash
-go install github.com/rossedman/sminer/cmd/sminer@latest
-```
+=== "Homebrew"
+
+    ```bash
+    brew install rossedman/tap/sminer
+    ```
+
+    This also installs shell completions and the man page.
+
+=== "Download"
+
+    Download the archive for your platform from the [releases page](https://github.com/rossedman/sminer/releases), unpack it, and put `sminer` on your `PATH`. Each release lists SHA-256 checksums in `checksums.txt`.
+
+    On macOS, clear the download quarantine once: `xattr -d com.apple.quarantine sminer`.
+
+=== "Go"
+
+    With Go 1.26 or later:
+
+    ```bash
+    go install github.com/rossedman/sminer/cmd/sminer@latest
+    ```
 
 Check that it runs:
 

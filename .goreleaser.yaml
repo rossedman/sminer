@@ -1,0 +1,94 @@
+# Release builds. A pushed tag (v*) runs .github/workflows/release.yml,
+# which runs this. Try it locally with: make release-snapshot
+version: 2
+
+project_name: sminer
+
+before:
+  hooks:
+    - go mod download
+    - ./scripts/extras.sh
+
+builds:
+  - main: ./cmd/sminer
+    env:
+      - CGO_ENABLED=0 # the SQLite driver is pure Go
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/rossedman/sminer/internal/version.Version={{ .Tag }}
+      - -X github.com/rossedman/sminer/internal/version.Commit={{ .ShortCommit }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - completions/*
+      - manpages/*
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^Merge pull request"
+      - "^Merge branch"
+      - "^Format "
+  groups:
+    - title: Features
+      regexp: '^(Add|Draw|Build|Support|Introduce)\b'
+      order: 0
+    - title: Fixes
+      regexp: '^Fix\b'
+      order: 1
+    - title: Other changes
+      order: 999
+
+release:
+  github:
+    owner: rossedman
+    name: sminer
+  footer: |
+    Install with Homebrew (`brew install rossedman/tap/sminer`), `go install github.com/rossedman/sminer/cmd/sminer@{{ .Tag }}`,
+    or download an archive below and put `sminer` on your PATH. Docs: https://rossedman.io/sminer/
+
+# A Homebrew cask in rossedman/homebrew-tap. It's skipped until the
+# HOMEBREW_TAP_GITHUB_TOKEN secret exists (see docs/releasing.md).
+homebrew_casks:
+  - name: sminer
+    repository:
+      owner: rossedman
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    skip_upload: '{{ if not (index .Env "HOMEBREW_TAP_GITHUB_TOKEN") }}true{{ end }}'
+    directory: Casks
+    homepage: https://rossedman.io/sminer/
+    description: Find the corrections you keep making to Claude, and fix them for good
+    license: MIT
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "sminer {{ .Tag }}"
+    completions:
+      bash: completions/sminer.bash
+      zsh: completions/sminer.zsh
+      fish: completions/sminer.fish
+    manpages:
+      - manpages/sminer.1.gz
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/sminer"]
+          end

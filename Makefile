@@ -1,4 +1,4 @@
-.PHONY: build test check fmt vet cover fuzz eval fixtures
+.PHONY: build test check fmt vet cover fuzz eval fixtures release-snapshot
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null)
@@ -30,3 +30,7 @@ eval:
 
 fixtures:
 	python3 testdata/gen_fixtures.py
+
+# Build every release archive into dist/ without publishing (needs goreleaser).
+release-snapshot:
+	goreleaser release --snapshot --clean
