@@ -172,3 +172,37 @@ func TestIsScratchPath(t *testing.T) {
 		}
 	}
 }
+
+// Turns stored before ingest knew about Bash writes still carry fix-ups
+// for files Claude rewrote through Bash; Detect drops those.
+func TestDetectFixupAfterBash(t *testing.T) {
+	const p = "/r/internal/cluster/cluster.go"
+	tool := func(name, key string) store.Turn {
+		return store.Turn{Kind: ingest.KindToolUse, Role: "assistant", ToolName: name, ToolKey: key}
+	}
+	fixup := store.Turn{ID: "f#200", Kind: ingest.KindFixup, ToolKey: p}
+	tests := []struct {
+		name  string
+		turns []store.Turn
+		want  int
+	}{
+		{"sed on the file", []store.Turn{tool("Edit", p), tool("Bash", "sed -i 's/a/b/' internal/cluster/cluster.go"), tool("Read", p), fixup}, 0},
+		{"gofmt over the tree", []store.Turn{tool("Write", p), tool("Bash", "gofmt -w ./..."), tool("Read", p), fixup}, 0},
+		{"unrelated bash", []store.Turn{tool("Edit", p), tool("Bash", "go test ./..."), tool("Read", p), fixup}, 1},
+		{"Write after bash re-baselines", []store.Turn{tool("Edit", p), tool("Bash", "gofmt -w ."), tool("Write", p), tool("Read", p), fixup}, 1},
+		{"only the first fix-up is excused", []store.Turn{tool("Edit", p), tool("Bash", "gofmt -w ."), tool("Read", p), fixup, tool("Read", p), fixup}, 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n := 0
+			for _, s := range Detect(store.Session{ID: "s1"}, tt.turns) {
+				if s.Type == store.ManualFixup {
+					n++
+				}
+			}
+			if n != tt.want {
+				t.Errorf("manual fix-ups = %d, want %d", n, tt.want)
+			}
+		})
+	}
+}

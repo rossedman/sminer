@@ -36,7 +36,7 @@ const interruptedPrefix = "(interrupted) "
 
 // DetectorVersion changes whenever Detect would produce different signals
 // from the same turns; Run then re-detects every session.
-const DetectorVersion = "2"
+const DetectorVersion = "3"
 
 // IsBareInterrupt reports whether s is an interrupt the user gave no
 // reason for. It counts as friction but says nothing to cluster on.
@@ -87,6 +87,10 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 	var failCmd string
 	var failStreak int
 	var failEmitted bool
+	// Files Claude wrote or read, and whether a later Bash command may have
+	// rewritten them. Turns ingested before trackFixup knew about Bash
+	// still carry fix-ups for those changes.
+	bashTouched := map[string]bool{}
 
 	prevKind := ""
 	for i, t := range turns {
@@ -101,6 +105,20 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			actions = append(actions, t)
 			if t.ToolUseID != "" {
 				tools[t.ToolUseID] = t
+			}
+			switch t.ToolName {
+			case "Write":
+				bashTouched[t.ToolKey] = false
+			case "Edit", "MultiEdit", "Read":
+				if _, ok := bashTouched[t.ToolKey]; !ok {
+					bashTouched[t.ToolKey] = false
+				}
+			case "Bash":
+				for p := range bashTouched {
+					if ingest.BashMayWrite(t.ToolKey, p) {
+						bashTouched[p] = true
+					}
+				}
 			}
 		case ingest.KindAssistantText:
 			actions = append(actions, t)
@@ -183,6 +201,10 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			actions = nil
 		case ingest.KindFixup:
 			if IsScratchPath(t.ToolKey) {
+				continue
+			}
+			if bashTouched[t.ToolKey] {
+				bashTouched[t.ToolKey] = false
 				continue
 			}
 			key := FileKey(t.ToolKey)
