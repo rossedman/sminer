@@ -194,7 +194,7 @@ sminer treats its output as an interface.
 
 ### On a terminal
 
-When a person is reading, sminer draws its output with [Charm](https://charm.sh)'s libraries: lists become tables with score bars, `finding show` becomes a card, reports are rendered Markdown, diffs are colored, pipeline steps get a spinner, and help is styled. Piped or redirected, the same commands print the plain forms above, byte for byte, so scripts never see a box-drawing character.
+When a person is reading, sminer draws its output with [Charm](https://charm.sh)'s libraries: lists become tables with score bars, `finding show` becomes a card, `report` becomes a one-screen overview (evidence stays in `finding show` and the Markdown form), diffs are colored, pipeline steps get a spinner, and help is styled. Piped or redirected, the same commands print the plain forms above, byte for byte, so scripts never see a box-drawing character.
 
 ![sminer run: each pipeline step finishes with a check mark and its outcome.](assets/terminal/run.png)
 

@@ -205,18 +205,10 @@ func (a *app) emitReport(r report.Report, output string) error {
 	}
 	if output == "" || output == "-" {
 		if a.fancyOut() && !a.g.json {
-			// A person is reading: render the Markdown instead of
-			// printing its source. Piped, it stays Markdown.
-			var md strings.Builder
-			if err := render(&md); err != nil {
-				return err
-			}
+			// A person is reading: draw the overview. Piped, it stays
+			// Markdown.
 			a.spin.pause()
-			out, err := a.theme().Markdown(md.String(), a.width()-6) // margins and quote bars
-			if err != nil {
-				return err
-			}
-			_, err = io.WriteString(a.out, out)
+			_, err := io.WriteString(a.out, renderReport(a.theme(), r, a.width()))
 			return err
 		}
 		return render(a.out)
