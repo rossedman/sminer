@@ -38,12 +38,14 @@ type Config struct {
 	PatchDir     string     `mapstructure:"patch_dir" json:"patch_dir"`
 }
 
+// Classifier configures the LLM pass that confirms candidate corrections.
 type Classifier struct {
 	Model          string `mapstructure:"model" json:"model"`
 	MaxCallsPerRun int    `mapstructure:"max_calls_per_run" json:"max_calls_per_run"`
 	Concurrency    int    `mapstructure:"concurrency" json:"concurrency"`
 }
 
+// Embeddings selects how signal text is embedded for clustering.
 type Embeddings struct {
 	// Provider is "auto" (ollama if reachable, else hash), "ollama" or "hash".
 	Provider string `mapstructure:"provider" json:"provider"`
@@ -51,16 +53,21 @@ type Embeddings struct {
 	URL      string `mapstructure:"url" json:"url"`
 }
 
+// Cluster tunes how embedded signals are grouped into findings.
 type Cluster struct {
 	// Threshold is the cosine similarity needed to join a cluster.
 	// Zero means the embedder's default.
 	Threshold float64 `mapstructure:"threshold" json:"threshold"`
 }
 
+// Redact lists extra regular expressions scrubbed from text before it is
+// stored or sent anywhere.
 type Redact struct {
 	Patterns []string `mapstructure:"patterns" json:"patterns"`
 }
 
+// Remedies points at the existing hooks, CLAUDE.md, skills and settings that
+// proposals are checked against and written for.
 type Remedies struct {
 	HooksDir       string `mapstructure:"hooks_dir" json:"hooks_dir"`
 	GlobalClaudeMD string `mapstructure:"global_claude_md" json:"global_claude_md"`
@@ -110,8 +117,8 @@ func EnvVar(key string) string {
 	return EnvPrefix + "_" + strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
 }
 
-// ConfigDir is $XDG_CONFIG_HOME/sminer, defaulting to ~/.config/sminer.
-func ConfigDir() string { return xdg("XDG_CONFIG_HOME", ".config") }
+// Dir is $XDG_CONFIG_HOME/sminer, defaulting to ~/.config/sminer.
+func Dir() string { return xdg("XDG_CONFIG_HOME", ".config") }
 
 // DataDir is $XDG_DATA_HOME/sminer, defaulting to ~/.local/share/sminer.
 func DataDir() string { return xdg("XDG_DATA_HOME", ".local/share") }
@@ -124,7 +131,7 @@ func xdg(env, fallback string) string {
 }
 
 // DefaultFile is the config file read when none is named.
-func DefaultFile() string { return filepath.Join(ConfigDir(), "config.yaml") }
+func DefaultFile() string { return filepath.Join(Dir(), "config.yaml") }
 
 // Setup prepares v with defaults and environment binding. Call it before
 // binding flags and before Load.

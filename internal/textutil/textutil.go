@@ -109,10 +109,10 @@ func Jaccard(a, b []string) float64 {
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 
 // Slug makes a short filesystem-safe name from s.
-func Slug(s string, max int) string {
+func Slug(s string, maxLen int) string {
 	s = strings.Trim(slugRe.ReplaceAllString(strings.ToLower(s), "-"), "-")
-	if len(s) > max {
-		s = strings.TrimRight(s[:max], "-")
+	if len(s) > maxLen {
+		s = strings.TrimRight(s[:maxLen], "-")
 	}
 	if s == "" {
 		s = "finding"

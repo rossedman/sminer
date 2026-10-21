@@ -1,0 +1,69 @@
+version: "2"
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - gosec
+    - misspell
+    - revive
+  settings:
+    errcheck:
+      # Writes to the terminal and closes of read-only handles have nothing
+      # useful to do with an error.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (*database/sql.Tx).Rollback # deferred after Commit; the error is ErrTxDone
+        - (*text/tabwriter.Writer).Write # Flush returns the first write error
+        - (hash.Hash32).Write # never returns an error
+    gosec:
+      excludes:
+        - G104 # errcheck covers unchecked errors, with the exclusions above
+        - G304 # reading user-named files (transcripts, config) is the point
+        - G404 # seeded math/rand keeps clustering and sampling reproducible
+    staticcheck:
+      checks:
+        - all
+        - -QF1001 # De Morgan rewrites read worse for these allow-lists
+        - -QF1008 # spelling out embedded fields is clearer
+    revive:
+      # revive's defaults, minus unused-parameter: cobra and bubbletea
+      # callbacks have fixed signatures.
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: var-declaration
+        - name: var-naming
+  exclusions:
+    generated: strict
+    presets:
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters: [errcheck, gosec]
+
+formatters:
+  enable:
+    - gofmt
+
+run:
+  timeout: 5m

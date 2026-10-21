@@ -98,7 +98,7 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 			continue
 		}
 		if i > 0 {
-			prevKind = turns[i-1].Kind
+			prevKind = turns[i-1].Kind //nolint:gosec // G602: guarded by i > 0
 		}
 		switch t.Kind {
 		case ingest.KindToolUse:

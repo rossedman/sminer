@@ -772,17 +772,17 @@ func BashMayWrite(cmd, path string) bool {
 	return targets == 0
 }
 
-func (f *fileState) apply(old, new string, all bool) {
+func (f *fileState) apply(old, repl string, all bool) {
 	if f.known {
 		n := 1
 		if all {
 			n = -1
 		}
-		f.content = strings.Replace(f.content, old, new, n)
+		f.content = strings.Replace(f.content, old, repl, n)
 		return
 	}
-	if len(strings.TrimSpace(new)) >= 16 {
-		f.expected = append(f.expected, new)
+	if len(strings.TrimSpace(repl)) >= 16 {
+		f.expected = append(f.expected, repl)
 	}
 }
 

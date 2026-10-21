@@ -168,7 +168,7 @@ func repeated(st *store.Store, opt Options, sessions map[string]store.Session) e
 	}
 	old.Close()
 	if len(stale) > 0 {
-		q := `DELETE FROM signals WHERE id IN (?` + strings.Repeat(",?", len(stale)-1) + `)`
+		q := `DELETE FROM signals WHERE id IN (?` + strings.Repeat(",?", len(stale)-1) + `)` //nolint:gosec // G202: placeholders only
 		a := make([]any, len(stale))
 		for i, id := range stale {
 			a[i] = id

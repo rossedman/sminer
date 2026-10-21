@@ -182,8 +182,8 @@ func (a *app) trendChart(tr report.Trend) string {
 		if tr.AdoptedAt != nil && w.Start.Equal(adoptWeek) {
 			mark = style(th.OK, "  ◀ adopted "+tr.AdoptedAt.Format("Jan 2"))
 		}
-		b.WriteString(fmt.Sprintf("  %s %s %s%s\n", style(th.Muted, w.Start.Format("Jan 02")),
-			th.Bar(float64(w.Count), float64(hi), 30, c), style(th.Text, fmt.Sprintf("%2d", w.Count)), mark))
+		fmt.Fprintf(&b, "  %s %s %s%s\n", style(th.Muted, w.Start.Format("Jan 02")),
+			th.Bar(float64(w.Count), float64(hi), 30, c), style(th.Text, fmt.Sprintf("%2d", w.Count)), mark)
 	}
 	b.WriteString("\n")
 	if tr.AdoptedAt == nil {
@@ -199,9 +199,9 @@ func (a *app) trendChart(tr report.Trend) string {
 		}
 		change = "  " + style(st.Bold(true), fmt.Sprintf("%+.0f%%", pct))
 	}
-	b.WriteString(fmt.Sprintf("%s %s  →  %s %s over %.1f weeks%s\n",
+	fmt.Fprintf(&b, "%s %s  →  %s %s over %.1f weeks%s\n",
 		style(th.Muted, "before"), style(th.Err, fmt.Sprintf("%.2f/wk", tr.BeforeRate)),
-		style(th.Muted, "after"), style(th.OK, fmt.Sprintf("%.2f/wk", tr.AfterRate)), tr.AfterWeeks, change))
+		style(th.Muted, "after"), style(th.OK, fmt.Sprintf("%.2f/wk", tr.AfterRate)), tr.AfterWeeks, change)
 	return b.String()
 }
 

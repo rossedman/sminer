@@ -49,7 +49,7 @@ func LoadExisting(cfg config.Config) *Existing {
 				return nil
 			}
 			if info, err := d.Info(); err == nil && info.Size() < 256<<10 {
-				if b, err := os.ReadFile(p); err == nil {
+				if b, err := os.ReadFile(p); err == nil { //nolint:gosec // G122: read-only scan of the user's own hooks dir
 					e.hookTexts = append(e.hookTexts, hookText{where: p, text: string(b)})
 				}
 			}

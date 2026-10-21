@@ -70,8 +70,8 @@ type Budget struct {
 	used atomic.Int64
 }
 
-// NewBudget allows up to max calls.
-func NewBudget(max int) *Budget { return &Budget{max: int64(max)} }
+// NewBudget allows up to n calls.
+func NewBudget(n int) *Budget { return &Budget{max: int64(n)} }
 
 // Take reserves one call, reporting false when the budget is spent.
 func (b *Budget) Take() bool {

@@ -26,6 +26,7 @@ type Trend struct {
 	AfterWeeks float64    `json:"after_weeks"`
 }
 
+// WeekStart returns midnight UTC on the Monday of t's week.
 func WeekStart(t time.Time) time.Time {
 	t = t.UTC().Truncate(24 * time.Hour)
 	wd := (int(t.Weekday()) + 6) % 7 // Monday = 0

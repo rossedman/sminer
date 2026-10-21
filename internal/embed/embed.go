@@ -52,8 +52,14 @@ type Hash struct{}
 
 const hashDims = 256
 
-func (Hash) Name() string       { return "hash-v4" }
+// Name identifies the embedder and its version, so stored vectors from an
+// older scheme are recomputed.
+func (Hash) Name() string { return "hash-v4" }
+
+// Threshold is the cosine similarity at which two hashed texts cluster.
 func (Hash) Threshold() float64 { return 0.45 }
+
+// Embed returns one normalized feature-hashed vector per text.
 func (h Hash) Embed(texts []string) ([][]float32, error) {
 	out := make([][]float32, len(texts))
 	for i, t := range texts {
@@ -123,7 +129,10 @@ type Ollama struct {
 	client *http.Client
 }
 
-func (o *Ollama) Name() string       { return "ollama:" + o.Model }
+// Name identifies the embedder by its model, so switching models re-embeds.
+func (o *Ollama) Name() string { return "ollama:" + o.Model }
+
+// Threshold is the cosine similarity at which two model embeddings cluster.
 func (o *Ollama) Threshold() float64 { return 0.78 }
 
 func (o *Ollama) http() *http.Client {
@@ -165,6 +174,7 @@ func (o *Ollama) Available() bool {
 	return false
 }
 
+// Embed asks the ollama server for one embedding per text.
 func (o *Ollama) Embed(texts []string) ([][]float32, error) {
 	out := make([][]float32, 0, len(texts))
 	for start := 0; start < len(texts); start += 64 {

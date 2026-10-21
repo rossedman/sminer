@@ -541,7 +541,7 @@ func (m *reviewModel) renderHelp() string {
 	var b strings.Builder
 	b.WriteString(th.Heading.Render("sminer review") + "\n\n")
 	for _, r := range rows {
-		b.WriteString(fmt.Sprintf("  %s  %s\n", th.Code.Render(fmt.Sprintf("%-16s", r[0])), th.Text.Render(r[1])))
+		fmt.Fprintf(&b, "  %s  %s\n", th.Code.Render(fmt.Sprintf("%-16s", r[0])), th.Text.Render(r[1]))
 	}
 	b.WriteString("\n" + th.Muted.Render("CLAUDE.md lines marked together for the same file share one patch.") + "\n")
 	b.WriteString(th.Muted.Render("sminer never applies a patch: apply it yourself with the command it shows.") + "\n\n")

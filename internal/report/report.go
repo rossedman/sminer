@@ -541,14 +541,6 @@ func listSome(items []string, n int) string {
 	return fmt.Sprintf("%s and %d more", strings.Join(items[:n], ", "), len(items)-n)
 }
 
-func quoteAll(ss []string) []string {
-	out := make([]string, len(ss))
-	for i, s := range ss {
-		out[i] = "`" + s + "`"
-	}
-	return out
-}
-
 func escapePipes(s string) string { return strings.ReplaceAll(s, "|", `\|`) }
 
 // shellQuote quotes p for a copy-pasted cd when it has spaces; a leading ~
