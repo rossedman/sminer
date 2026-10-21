@@ -30,7 +30,10 @@ func funcName(fd *ast.FuncDecl) string {
 	if s, ok := t.(*ast.StarExpr); ok {
 		t = s.X
 	}
-	if ix, ok := t.(*ast.IndexExpr); ok {
+	switch ix := t.(type) {
+	case *ast.IndexExpr: // G[T]
+		t = ix.X
+	case *ast.IndexListExpr: // M[K, V]
 		t = ix.X
 	}
 	if id, ok := t.(*ast.Ident); ok {
