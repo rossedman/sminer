@@ -16,13 +16,13 @@ sminer is a single binary with no runtime dependencies.
 
 === "Download"
 
-    Download the archive for your platform from the [releases page](https://github.com/rossedman/sminer/releases), unpack it, and put `sminer` on your `PATH`. Each release lists SHA-256 checksums in `checksums.txt`.
+    Download the archive for your platform from the [releases page](https://github.com/rossedman/sminer/releases), unpack it, and put `sminer` on your `PATH`. Each release lists SHA-256 checksums in `checksums.txt`, signed with Sigstore cosign; see [verifying releases](https://github.com/rossedman/sminer/blob/main/SECURITY.md#verifying-releases).
 
     On macOS, clear the download quarantine once: `xattr -d com.apple.quarantine sminer`.
 
 === "Go"
 
-    With Go 1.26 or later:
+    With Go 1.27 or later:
 
     ```bash
     go install github.com/rossedman/sminer/cmd/sminer@latest
