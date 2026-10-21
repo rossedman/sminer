@@ -37,6 +37,15 @@ archives:
 checksum:
   name_template: checksums.txt
 
+# Keyless Sigstore signature over checksums.txt, which covers every archive.
+# The release workflow's GitHub OIDC identity signs it; there are no keys.
+# Verify with the commands in SECURITY.md.
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--bundle=${signature}", "${artifact}", "--yes"]
+
 changelog:
   use: github
   sort: asc
@@ -44,14 +53,21 @@ changelog:
     exclude:
       - "^Merge pull request"
       - "^Merge branch"
-      - "^Format "
+      - '^(docs|test|ci|chore|style)(\(.+\))?:'
+  # Conventional Commits (CONTRIBUTING.md).
   groups:
-    - title: Features
-      regexp: '^(Add|Draw|Build|Support|Introduce)\b'
+    - title: Breaking changes
+      regexp: '^\w+(\(.+\))?!:'
       order: 0
-    - title: Fixes
-      regexp: '^Fix\b'
+    - title: Features
+      regexp: '^feat(\(.+\))?:'
       order: 1
+    - title: Fixes
+      regexp: '^fix(\(.+\))?:'
+      order: 2
+    - title: Performance
+      regexp: '^perf(\(.+\))?:'
+      order: 3
     - title: Other changes
       order: 999
 
