@@ -2,6 +2,8 @@
 
 sminer's commands read like sentences: `sminer <noun> <verb> <target> --modifier`. Every command has `--help` with examples. Bare `sminer` prints help.
 
+This page is an overview. The [command reference](reference/commands/sminer.md) has every command's flags and examples, generated from the CLI itself.
+
 ```text
 Mining
   sminer run        ingest, analyze and print the report

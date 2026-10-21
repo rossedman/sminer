@@ -25,6 +25,10 @@ func Execute() int {
 	return Run(ctx, os.Args[1:], Options{})
 }
 
+// Command returns sminer's command tree for documentation generators. It is
+// not connected to any streams and is not meant to be executed.
+func Command() *cobra.Command { return newRootCmd(newApp(Options{})) }
+
 // Run executes one invocation. It never calls os.Exit, so tests can drive it.
 func Run(ctx context.Context, argv []string, opts Options) (code int) {
 	a := newApp(opts)

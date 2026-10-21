@@ -28,6 +28,7 @@ nav:
       - Privacy and safety: privacy.md
   - Reference:
       - CLI: cli.md
+      - Command reference: reference/commands/sminer.md
       - Configuration: configuration.md
       - Troubleshooting: troubleshooting.md
   - Project:
