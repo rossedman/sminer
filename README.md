@@ -152,7 +152,7 @@ sminer runs with no configuration. To change a setting, use a flag, an environme
 
 1. command-line flags
 2. `SMINER_*` environment variables: every key has one, e.g. `classifier.model` is `SMINER_CLASSIFIER_MODEL`, and `SMINER_OFFLINE=1` keeps everything local
-3. the config file, `$XDG_CONFIG_HOME/sminer/config.yaml` (default `~/.config/sminer/config.yaml`), or the one named by `--config`
+3. the config file named by `--config`, or else the first of `$XDG_CONFIG_HOME/sminer/config.yaml` (default `~/.config/sminer/config.yaml`), `~/.sminer.yaml` and `./.sminer.yaml`
 4. built-in defaults
 
 `sminer config show` prints every effective value and the layer that set it. `sminer config path` prints the file location. See [`config.example.yaml`](config.example.yaml) for every key:

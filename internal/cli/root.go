@@ -143,9 +143,13 @@ func newRootCmd(a *app) *cobra.Command {
 	pf.Bool("offline", false, "never call the network; heuristics and local clustering only")
 	bindFlag(pf, "offline", "offline")
 	pf.BoolVar(&a.g.json, "json", false, "print machine-readable JSON on stdout")
+	bindFlag(pf, "json", "json")
 	pf.BoolVarP(&a.g.quiet, "quiet", "q", false, "print nothing on stderr except errors")
+	bindFlag(pf, "quiet", "quiet")
 	pf.BoolVarP(&a.g.verbose, "verbose", "v", false, "print detail on stderr")
+	bindFlag(pf, "verbose", "verbose")
 	pf.BoolVar(&a.g.noColor, "no-color", false, "disable color (also NO_COLOR=1)")
+	bindFlag(pf, "no-color", "no_color")
 	root.MarkFlagsMutuallyExclusive("quiet", "verbose")
 
 	root.AddGroup(

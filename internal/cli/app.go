@@ -130,6 +130,25 @@ func (a *app) load(cmd *cobra.Command) error {
 		return err
 	}
 	a.cfg, a.cfgFile, a.loaded = cfg, file, true
+	return a.applyOutput()
+}
+
+// applyOutput lets the environment and config file set the output flags,
+// which are only flags until configuration has been loaded. --quiet or
+// --verbose on the command line beats either one set elsewhere.
+func (a *app) applyOutput() error {
+	a.g.json = a.g.json || a.cfg.JSON
+	if !a.g.quiet && !a.g.verbose {
+		if a.cfg.Quiet && a.cfg.Verbose {
+			return fmt.Errorf("%w: quiet and verbose cannot both be set", config.ErrInvalid)
+		}
+		a.g.quiet, a.g.verbose = a.cfg.Quiet, a.cfg.Verbose
+	}
+	if a.cfg.NoColor && !a.g.noColor {
+		a.g.noColor = true
+		a.out = ui.NewWriter(a.opts.Stdout, true)
+		a.err = ui.NewWriter(a.opts.Stderr, true)
+	}
 	return nil
 }
 

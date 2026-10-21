@@ -8,7 +8,7 @@ The first layer that sets a value wins:
 
 1. **Command-line flags**, such as `--since 30d`
 2. **Environment variables**: `SMINER_` plus the key in upper case, with dots as underscores. `classifier.model` is `SMINER_CLASSIFIER_MODEL`.
-3. **The config file**: `$XDG_CONFIG_HOME/sminer/config.yaml` (by default `~/.config/sminer/config.yaml`), or the file named by `--config`
+3. **The config file**: the file named by `--config`, or else the first of these that exists: `$XDG_CONFIG_HOME/sminer/config.yaml` (by default `~/.config/sminer/config.yaml`), `~/.sminer.yaml`, `./.sminer.yaml`
 4. **Built-in defaults**
 
 `sminer config show` prints every effective value and which layer set it:
@@ -91,7 +91,7 @@ sminer follows the XDG base directory spec, on macOS too:
 
 | What | Where |
 |---|---|
-| Config file | `$XDG_CONFIG_HOME/sminer/config.yaml`, default `~/.config/sminer/config.yaml` |
+| Config file | `$XDG_CONFIG_HOME/sminer/config.yaml`, default `~/.config/sminer/config.yaml`; then `~/.sminer.yaml` and `./.sminer.yaml` |
 | Database and patches | `$XDG_DATA_HOME/sminer/`, default `~/.local/share/sminer/` |
 
 ## Better clustering with ollama

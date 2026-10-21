@@ -37,6 +37,8 @@ func TestLoadPrecedence(t *testing.T) {
 
 func TestLoadWithoutFile(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	t.Chdir(t.TempDir())
 	v := viper.New()
 	Setup(v)
 	c, used, err := Load(v, "")
@@ -85,5 +87,66 @@ func TestRepoExcluded(t *testing.T) {
 	c := Config{ExcludeRepos: []string{"/home/me/personal/*"}}
 	if !c.RepoExcluded("/home/me/personal/blog/sub") || c.RepoExcluded("/home/me/work/api") {
 		t.Error("glob matching wrong")
+	}
+}
+
+func TestFindSearchOrder(t *testing.T) {
+	xdg, home, cwd := t.TempDir(), t.TempDir(), t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	t.Setenv("HOME", home)
+	t.Chdir(cwd)
+	write := func(path, body string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	load := func() (Config, string) {
+		t.Helper()
+		v := viper.New()
+		Setup(v)
+		c, used, err := Load(v, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c, used
+	}
+
+	if f := Find(); f != "" {
+		t.Fatalf("Find() with no files = %q", f)
+	}
+	write(filepath.Join(cwd, ".sminer.yaml"), "window: 7d\n")
+	if c, used := load(); used != ".sminer.yaml" || c.Window != "7d" {
+		t.Errorf("current dir: used %q, window %q", used, c.Window)
+	}
+	homeFile := filepath.Join(home, ".sminer.yaml")
+	write(homeFile, "window: 14d\n")
+	if c, used := load(); used != homeFile || c.Window != "14d" {
+		t.Errorf("home should beat current dir: used %q, window %q", used, c.Window)
+	}
+	xdgFile := filepath.Join(xdg, "sminer", "config.yaml")
+	write(xdgFile, "window: 21d\n")
+	if c, used := load(); used != xdgFile || c.Window != "21d" {
+		t.Errorf("XDG should beat home: used %q, window %q", used, c.Window)
+	}
+}
+
+func TestOutputSettingsFromEnv(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	t.Chdir(t.TempDir())
+	t.Setenv("SMINER_JSON", "true")
+	t.Setenv("SMINER_NO_COLOR", "1")
+	v := viper.New()
+	Setup(v)
+	c, _, err := Load(v, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.JSON || !c.NoColor || c.Quiet || c.Verbose {
+		t.Errorf("output settings = json %v no_color %v quiet %v verbose %v", c.JSON, c.NoColor, c.Quiet, c.Verbose)
 	}
 }

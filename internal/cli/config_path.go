@@ -19,7 +19,7 @@ func newConfigPathCmd(a *app) *cobra.Command {
 		Args:        args(cobra.NoArgs),
 		Annotations: map[string]string{"config": "skip"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			file := config.Expand(or(a.g.configFile, config.DefaultFile()))
+			file := config.Expand(or(a.g.configFile, or(config.Find(), config.DefaultFile())))
 			_, statErr := os.Stat(file)
 			if a.g.json {
 				return a.printJSON(map[string]any{"config_file": file, "exists": statErr == nil, "data_dir": config.DataDir()})
