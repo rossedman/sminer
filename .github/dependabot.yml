@@ -1,0 +1,39 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        patterns: ["*"]
+    commit-message:
+      prefix: build
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+      include: scope
+
+  # MkDocs and its plugins for the docs site (docs/requirements.txt).
+  - package-ecosystem: pip
+    directory: /docs
+    schedule:
+      interval: weekly
+    ignore:
+      # MkDocs 2.0 drops theme overrides (docs/requirements.txt).
+      - dependency-name: mkdocs
+        update-types: ["version-update:semver-major"]
+    groups:
+      docs:
+        patterns: ["*"]
+    commit-message:
+      prefix: docs
+      include: scope
