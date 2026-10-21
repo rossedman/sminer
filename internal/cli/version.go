@@ -9,6 +9,8 @@ import (
 	"github.com/rossedman/sminer/internal/version"
 )
 
+// newVersionCmd builds the version command, which prints the version and build
+// details. With --json it also lists the command tree.
 func newVersionCmd(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",

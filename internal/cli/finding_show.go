@@ -10,6 +10,8 @@ import (
 	"github.com/rossedman/sminer/internal/report"
 )
 
+// newFindingShowCmd builds finding show, which prints one finding with its
+// proposal and every excerpt behind it.
 func newFindingShowCmd(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:               "show <id>",
@@ -35,6 +37,8 @@ func newFindingShowCmd(a *app) *cobra.Command {
 	}
 }
 
+// writeFinding prints f to the output: the styled card on a terminal,
+// otherwise plain text with the header, proposal and one entry per excerpt.
 func (a *app) writeFinding(f report.Finding) {
 	if a.fancyOut() {
 		fmt.Fprint(a.out, a.findingCard(f))

@@ -86,6 +86,10 @@ func (e *Existing) LoadRepo(repo string) {
 	e.loadSettings(filepath.Join(repo, ".claude", "settings.local.json"))
 }
 
+// loadSettings reads the hooks from the Claude settings file at path and adds
+// each hook's matcher and command, plus the text of the script it runs when
+// that is a local file under 256 KiB, to the known hook texts. A missing or
+// invalid file is ignored.
 func (e *Existing) loadSettings(path string) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -135,6 +139,9 @@ func (e *Existing) ClaudeMDFiles(repos []string) []string {
 	return files
 }
 
+// lines returns the lines of the file at path that have at least two tokens,
+// with their line numbers. Results are cached, including for files that cannot
+// be read.
 func (e *Existing) lines(path string) []mdLine {
 	if l, ok := e.mdCache[path]; ok {
 		return l
@@ -158,6 +165,7 @@ type Coverage struct {
 	Text string
 }
 
+// String formats c as path:line.
 func (c Coverage) String() string { return fmt.Sprintf("%s:%d", c.Path, c.Line) }
 
 // CoveredByClaudeMD returns "path:line" when an existing instruction already

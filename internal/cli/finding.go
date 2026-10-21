@@ -4,6 +4,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newFindingCmd builds the finding command, which groups the list, show,
+// accept, dismiss, reopen and trend subcommands.
 func newFindingCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "finding",

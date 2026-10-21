@@ -105,6 +105,10 @@ const linksHelp = `
 Docs: https://github.com/rossedman/sminer#readme
 Report a bug: ` + issuesURL + "\n"
 
+// newRootCmd builds the sminer root command with its global flags and every
+// subcommand. Commands are listed in workflow order, and the persistent pre-
+// run warns about deprecated commands and loads the config unless the command
+// opts out.
 func newRootCmd(a *app) *cobra.Command {
 	cobra.EnableCommandSorting = false // list commands in workflow order
 	root := &cobra.Command{

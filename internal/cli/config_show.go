@@ -9,6 +9,8 @@ import (
 	"github.com/rossedman/sminer/internal/config"
 )
 
+// newConfigShowCmd builds config show, which prints every setting with its
+// value and the layer that set it: flag, environment, file or default.
 func newConfigShowCmd(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",

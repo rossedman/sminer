@@ -6,6 +6,8 @@ import (
 	"github.com/rossedman/sminer/internal/store"
 )
 
+// newFindingDismissCmd builds finding dismiss, which hides findings from
+// reports and keeps an optional reason.
 func newFindingDismissCmd(a *app) *cobra.Command {
 	var reason string
 	cmd := &cobra.Command{

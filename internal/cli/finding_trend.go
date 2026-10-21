@@ -9,6 +9,9 @@ import (
 	"github.com/rossedman/sminer/internal/report"
 )
 
+// newFindingTrendCmd builds finding trend, which shows weekly occurrence rates
+// split at the adoption date. With an id it shows that finding's week-by-week
+// counts.
 func newFindingTrendCmd(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "trend [<id>]",

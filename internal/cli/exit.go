@@ -35,7 +35,11 @@ type cliError struct {
 	hint string
 }
 
+// Error returns the message of the wrapped error.
 func (e *cliError) Error() string { return e.err.Error() }
+
+// Unwrap returns the wrapped error so errors.Is and errors.As see through
+// cliError.
 func (e *cliError) Unwrap() error { return e.err }
 
 // usageError reports a mistake in how the command was invoked.
@@ -106,6 +110,7 @@ func isCobraUsage(err error) bool {
 	return false
 }
 
+// or returns a, or b when a is empty.
 func or(a, b string) string {
 	if a != "" {
 		return a

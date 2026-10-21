@@ -26,8 +26,13 @@ type labelModel struct {
 	interrupted bool
 }
 
+// Init implements tea.Model. The label screen has no startup command.
 func (m *labelModel) Init() tea.Cmd { return nil }
 
+// Update implements tea.Model. It tracks the terminal width and handles one
+// key per candidate: y and n save an answer, s skips, and q or esc quits. A
+// failed save or ctrl+c ends the program; ctrl+c also marks it interrupted.
+// Other keys are ignored.
 func (m *labelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -67,12 +72,17 @@ func (m *labelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// View implements tea.Model, rendering the current candidate on the alternate
+// screen.
 func (m *labelModel) View() tea.View {
 	v := tea.NewView(m.render())
 	v.AltScreen = true
 	return v
 }
 
+// render draws the header with progress and tallies, the action Claude took,
+// the message the user sent, and the key legend. It returns an empty string
+// once every candidate has been answered.
 func (m *labelModel) render() string {
 	th := m.th
 	w := max(40, m.width)

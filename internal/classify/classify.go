@@ -273,6 +273,7 @@ loop:
 	return stats, nil
 }
 
+// boolInt converts b to 1 or 0 for storage in an integer column.
 func boolInt(b bool) int {
 	if b {
 		return 1

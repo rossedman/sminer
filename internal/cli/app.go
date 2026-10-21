@@ -38,6 +38,8 @@ type Options struct {
 	ForceInteractive bool
 }
 
+// withDefaults returns o with every unset field replaced by its production
+// default: the process streams, time.Now and the Anthropic classifier.
 func (o Options) withDefaults() Options {
 	if o.Stdin == nil {
 		o.Stdin = os.Stdin
@@ -82,6 +84,9 @@ type app struct {
 	spin    *spinner
 }
 
+// newApp returns an app for opts, with defaults filled in and a fresh viper
+// instance holding the config defaults. No config file is read until the
+// command runs.
 func newApp(opts Options) *app {
 	opts = opts.withDefaults()
 	v := viper.New()
@@ -186,6 +191,8 @@ func (a *app) store() (*store.Store, error) {
 	return st, nil
 }
 
+// close releases the database if the command opened it. It is safe to call
+// when it did not.
 func (a *app) close() {
 	if a.st != nil {
 		a.st.Close()

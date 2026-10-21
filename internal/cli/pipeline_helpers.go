@@ -22,6 +22,8 @@ type scopeFlags struct {
 	repo string
 }
 
+// register adds the --since, --repo and --min-count flags to cmd and binds the
+// first and last to the window and min_count settings.
 func (s *scopeFlags) register(cmd *cobra.Command) {
 	f := cmd.Flags()
 	f.String("since", "90d", "how far back to look: 90d, 2w, 12h")
@@ -31,6 +33,8 @@ func (s *scopeFlags) register(cmd *cobra.Command) {
 	bindFlag(f, "min-count", "min_count")
 }
 
+// scope converts s and the loaded config into a pipeline.Scope. A repo path is
+// expanded and made absolute when possible.
 func (a *app) scope(s scopeFlags) pipeline.Scope {
 	repo := s.repo
 	if repo != "" {
@@ -41,6 +45,8 @@ func (a *app) scope(s scopeFlags) pipeline.Scope {
 	return pipeline.Scope{Window: a.cfg.WindowDuration(), Repo: repo, MinCount: a.cfg.MinCount}
 }
 
+// registerRoots adds the repeatable --root flag to cmd and binds it to the
+// roots setting.
 func registerRoots(cmd *cobra.Command) {
 	cmd.Flags().StringSlice("root", nil, "transcript directory, repeatable (default ~/.claude/projects)")
 	bindFlag(cmd.Flags(), "root", "roots")
@@ -98,6 +104,9 @@ func (a *app) emitReport(r report.Report, output string) error {
 	return nil
 }
 
+// summarizeIngest reports the result of an ingest run: a one-line summary, a
+// warning if lines were malformed, and debug detail on unknown event types and
+// Claude Code versions.
 func (a *app) summarizeIngest(r pipeline.IngestResult) {
 	a.done(fmt.Sprintf("ingested %d new line(s) from %d file(s) (%d unchanged, %d outside window), %d session(s) touched, in %s",
 		r.Lines, r.Files-r.Unchanged-r.OutsideWin, r.Unchanged, r.OutsideWin, r.Sessions, r.Elapsed),
@@ -114,6 +123,9 @@ func (a *app) summarizeIngest(r pipeline.IngestResult) {
 	}
 }
 
+// summarizeAnalyze reports the result of an analyze run: any warnings, debug
+// detail on signals, classifier and embedder, and a one-line summary of
+// findings, remedies and LLM calls.
 func (a *app) summarizeAnalyze(r pipeline.AnalyzeResult) {
 	for _, w := range r.Warnings {
 		a.warn("%s", w)

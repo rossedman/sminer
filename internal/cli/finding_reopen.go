@@ -4,6 +4,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newFindingReopenCmd builds finding reopen, which returns accepted or
+// dismissed findings to open. An existing patch file is left in place.
 func newFindingReopenCmd(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "reopen <id>...",

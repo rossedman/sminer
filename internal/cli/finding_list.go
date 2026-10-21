@@ -9,6 +9,8 @@ import (
 	"github.com/rossedman/sminer/internal/store"
 )
 
+// newFindingListCmd builds finding list, which prints findings with the given
+// status, highest score first. No findings is not an error.
 func newFindingListCmd(a *app) *cobra.Command {
 	var status string
 	cmd := &cobra.Command{

@@ -6,6 +6,8 @@ import (
 	"github.com/rossedman/sminer/internal/pipeline"
 )
 
+// newRunCmd builds the run command, which ingests, analyzes and reports in one
+// step. The report goes to stdout or --output.
 func newRunCmd(a *app) *cobra.Command {
 	var scope scopeFlags
 	var output string

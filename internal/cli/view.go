@@ -31,6 +31,8 @@ func (a *app) width() int {
 	return min(w, 120)
 }
 
+// findingTable prints fs as a styled table with a score bar scaled to the
+// highest score, sizing the title column to the terminal width.
 func (a *app) findingTable(fs []report.Finding) error {
 	th := a.theme()
 	top := 0.0
@@ -68,6 +70,7 @@ func (a *app) findingTable(fs []report.Finding) error {
 	return err
 }
 
+// findingCard returns f rendered as a card, preceded by a blank line.
 func (a *app) findingCard(f report.Finding) string {
 	return "\n" + renderCard(a.theme(), f, a.width(), true)
 }
@@ -119,6 +122,9 @@ func renderCard(th ui.Theme, f report.Finding, width int, hint bool) string {
 	return b.String()
 }
 
+// renderProposal returns the styled proposal section of a finding card. Its
+// content depends on the remedy: a hook (with an escalation notice if an
+// earlier line went unheeded), a skill, an ignore reason, or a CLAUDE.md line.
 func renderProposal(th ui.Theme, f report.Finding) string {
 	p := f.Proposal
 	label := style(th.Heading, "Proposal")
@@ -161,6 +167,9 @@ func (a *app) acceptedNote(group []string, res finding.AcceptResult) {
 	fmt.Fprintf(a.err, "  %s %s\n", style(th.Key, "undo with:"), style(th.Faint, "sminer finding reopen "+strings.Join(group, " ")))
 }
 
+// trendChart returns a week-by-week bar chart for tr. Weeks from the adoption
+// week on use a different colour and the adoption week is marked. A finding
+// that was never adopted gets a single before-rate line.
 func (a *app) trendChart(tr report.Trend) string {
 	th := a.theme()
 	var b strings.Builder
@@ -205,6 +214,8 @@ func (a *app) trendChart(tr report.Trend) string {
 	return b.String()
 }
 
+// trendTable prints a table of the before and after weekly rates for each
+// trend, with a sparkline of the last 24 weeks split at the adoption week.
 func (a *app) trendTable(trs []report.Trend) error {
 	th := a.theme()
 	rows := make([][]string, len(trs))
@@ -251,6 +262,7 @@ func sourceStyle(th ui.Theme, source string) lipgloss.Style {
 	return th.Faint
 }
 
+// tildeAll returns ps with the home directory shortened to ~ in each path.
 func tildeAll(ps []string) []string {
 	out := make([]string, len(ps))
 	for i, p := range ps {

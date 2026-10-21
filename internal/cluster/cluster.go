@@ -267,6 +267,10 @@ func Run(st *store.Store, opt Options) (Stats, error) {
 	return stats, tx.Commit()
 }
 
+// match finds the existing finding that g continues, or false if none.
+// Findings already taken or of another family are skipped. Keyed families need
+// an equal key; behavior groups take the existing finding whose centroid is
+// most similar, at or above thr.
 func match(g *group, existing []store.Finding, taken map[string]bool, thr float64) (store.Finding, bool) {
 	best, bestSim := -1, thr
 	for i, f := range existing {
@@ -289,6 +293,9 @@ func match(g *group, existing []store.Finding, taken map[string]bool, thr float6
 	return existing[best], true
 }
 
+// newID returns a stable finding id for g, derived from its key or, for
+// behavior groups, from its first member. A numeric suffix is added if the id
+// is already in ids.
 func newID(g *group, ids map[string]bool) string {
 	seed := g.key
 	if g.family == Behavior {
@@ -337,6 +344,10 @@ func Representative(members []store.Signal, vecs [][]float32, cent []float32) st
 	return members[best]
 }
 
+// ensureEmbeddings fills in the embedding of every behavior signal in sigs
+// that lacks one, and stores them in one transaction. If the embedder differs
+// from the one that made the stored vectors, all stored embeddings are
+// discarded first.
 func ensureEmbeddings(st *store.Store, e embed.Embedder, sigs []store.Signal) error {
 	if st.Meta("signal_embedder") != e.Name() {
 		if _, err := st.DB.Exec(`UPDATE signals SET embedding=NULL`); err != nil {

@@ -22,6 +22,8 @@ import (
 // defaultLabels is where 'sminer label' writes and 'sminer eval' reads.
 func defaultLabels() string { return filepath.Join(config.DataDir(), "labels.jsonl") }
 
+// newLabelCmd builds the label command, which samples candidate turns for the
+// user to mark as corrections or not, or exports the sample with --export.
 func newLabelCmd(a *app) *cobra.Command {
 	var out string
 	var limit int
@@ -132,6 +134,10 @@ func (a *app) printLine(v any) error {
 // tally counts one labelling session's answers.
 type tally struct{ yes, no, skipped int }
 
+// labelInteractive asks about each candidate in sample and appends every
+// answer to out as it is given. It uses a plain line prompt when interactive
+// input is forced or stderr is not a terminal, and the full-screen TUI
+// otherwise. It prints a tally even if the session ended with an error.
 func (a *app) labelInteractive(cmd *cobra.Command, sample []signal.Candidate, out string) error {
 	var t tally
 	save := func(c signal.Candidate, correction bool) error {

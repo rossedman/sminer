@@ -8,6 +8,9 @@ import (
 	"github.com/rossedman/sminer/internal/store"
 )
 
+// newFindingAcceptCmd builds finding accept, which writes the patch for each
+// finding and marks it adopted. With --preview it prints the patches and
+// changes nothing.
 func newFindingAcceptCmd(a *app) *cobra.Command {
 	var preview bool
 	var dir string

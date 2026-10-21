@@ -6,6 +6,8 @@ import (
 	"github.com/rossedman/sminer/internal/pipeline"
 )
 
+// newReportCmd builds the report command, which prints the ranked findings as
+// Markdown or JSON, or writes them to --output.
 func newReportCmd(a *app) *cobra.Command {
 	var scope scopeFlags
 	var output, format string

@@ -4,6 +4,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newConfigCmd builds the config command, which only prints help and groups
+// the show and path subcommands.
 func newConfigCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",

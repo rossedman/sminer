@@ -11,6 +11,8 @@ import (
 	"github.com/rossedman/sminer/internal/eval"
 )
 
+// newEvalCmd builds the eval command, which scores correction detection
+// against a labelled JSONL set. The classifier is scored only with --live.
 func newEvalCmd(a *app) *cobra.Command {
 	var labels string
 	var live bool

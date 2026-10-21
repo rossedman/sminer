@@ -133,6 +133,9 @@ func Dir() string { return xdg("XDG_CONFIG_HOME", ".config") }
 // DataDir is $XDG_DATA_HOME/sminer, defaulting to ~/.local/share/sminer.
 func DataDir() string { return xdg("XDG_DATA_HOME", ".local/share") }
 
+// xdg returns the sminer directory under the XDG base directory named by env,
+// if that is set to an absolute path, otherwise under fallback in the home
+// directory.
 func xdg(env, fallback string) string {
 	if d := os.Getenv(env); d != "" && filepath.IsAbs(d) {
 		return filepath.Join(d, "sminer")

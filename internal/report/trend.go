@@ -79,6 +79,8 @@ func ComputeTrend(st *store.Store, id string, now time.Time) (Trend, error) {
 	return tr, nil
 }
 
+// weeksBetween returns the number of weeks from a to b, but never less than
+// one so it can be used as a divisor.
 func weeksBetween(a, b time.Time) float64 {
 	w := b.Sub(a).Hours() / (24 * 7)
 	if w < 1 {

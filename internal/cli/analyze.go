@@ -6,6 +6,8 @@ import (
 	"github.com/rossedman/sminer/internal/pipeline"
 )
 
+// newAnalyzeCmd builds the analyze command, which finds signals in ingested
+// sessions, clusters them into findings and routes each to a remedy.
 func newAnalyzeCmd(a *app) *cobra.Command {
 	var scope scopeFlags
 	cmd := &cobra.Command{

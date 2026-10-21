@@ -152,6 +152,9 @@ func Decode(line []byte) (Event, error) {
 	return ev, nil
 }
 
+// decodeBlocks decodes the message content of an event into blocks. A plain
+// string becomes one text block. In an array, an element that fails to decode
+// is skipped rather than failing the message. Anything else gives nil.
 func decodeBlocks(raw json.RawMessage) []Block {
 	raw = bytes.TrimSpace(raw)
 	if len(raw) == 0 {

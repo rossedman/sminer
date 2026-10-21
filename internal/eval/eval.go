@@ -46,6 +46,8 @@ func (s Score) Recall() float64 {
 	return float64(s.TP) / float64(s.TP+s.FN)
 }
 
+// add returns s with the outcome of one prediction counted as a true or false
+// positive or negative.
 func (s Score) add(pred, truth bool) Score {
 	switch {
 	case pred && truth:
@@ -60,6 +62,7 @@ func (s Score) add(pred, truth bool) Score {
 	return s
 }
 
+// String formats the precision, recall and confusion counts on one line.
 func (s Score) String() string {
 	return fmt.Sprintf("precision %.1f%%  recall %.1f%%  (tp %d fp %d fn %d tn %d, n=%d)",
 		100*s.Precision(), 100*s.Recall(), s.TP, s.FP, s.FN, s.TN, s.TP+s.FP+s.FN+s.TN)
@@ -69,6 +72,10 @@ func (s Score) String() string {
 // by 'sminer label --export' and not yet labelled) are skipped.
 func Load(path string) ([]Item, error) { return load(path, false) }
 
+// load reads items from the JSONL file at path, skipping blank lines and lines
+// starting with //. Items whose correction is null are skipped unless
+// unlabelled is true, in which case they count as false. A malformed line is
+// an error that names the file and line.
 func load(path string, unlabelled bool) ([]Item, error) {
 	f, err := os.Open(path)
 	if err != nil {

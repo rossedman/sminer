@@ -12,6 +12,8 @@ import (
 	"github.com/rossedman/sminer/internal/store"
 )
 
+// newReviewCmd builds the review command, a full-screen browser for accepting,
+// dismissing and reopening findings. It needs a terminal.
 func newReviewCmd(a *app) *cobra.Command {
 	var status, dir string
 	cmd := &cobra.Command{
@@ -60,6 +62,7 @@ review needs a terminal. In scripts, use 'sminer finding list' and
 	return cmd
 }
 
+// validStatus reports whether s is one of the finding statuses.
 func validStatus(s string) bool {
 	for _, v := range finding.Statuses {
 		if s == v {
@@ -69,6 +72,9 @@ func validStatus(s string) bool {
 	return false
 }
 
+// review runs the review TUI on svc and prints what it did. The paths of the
+// patches written go to stdout, or to JSON with --json. If the user
+// interrupted, the summary is still printed and context.Canceled is returned.
 func (a *app) review(ctx context.Context, svc reviewer, dir, status string) error {
 	m := newReviewModel(a.theme(), svc, dir, status)
 	if m.err != nil {
@@ -97,6 +103,9 @@ func (a *app) review(ctx context.Context, svc reviewer, dir, status string) erro
 	return nil
 }
 
+// reviewSummary prints how many findings were accepted, dismissed and
+// reopened, and the apply command for each patch written. It says so when
+// nothing changed.
 func (a *app) reviewSummary(m *reviewModel) {
 	if m.accepted+m.dismissed+m.reopened == 0 {
 		a.info("%s", style(a.theme().Faint, "no changes"))
@@ -109,6 +118,8 @@ func (a *app) reviewSummary(m *reviewModel) {
 	}
 }
 
+// orEmpty returns ss, or an empty non-nil slice if ss is nil, so it encodes as
+// [] in JSON.
 func orEmpty(ss []string) []string {
 	if ss == nil {
 		return []string{}

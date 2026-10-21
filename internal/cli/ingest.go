@@ -6,6 +6,8 @@ import (
 	"github.com/rossedman/sminer/internal/pipeline"
 )
 
+// newIngestCmd builds the ingest command, which reads new transcript lines
+// into the database incrementally.
 func newIngestCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ingest",

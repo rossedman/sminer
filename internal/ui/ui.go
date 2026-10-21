@@ -186,6 +186,7 @@ func (t Theme) Bar(v, total float64, width int, c color.Color) string {
 		t.Faint.Render(strings.Repeat("─", width-n))
 }
 
+// max0 returns n, or 0 if n is negative.
 func max0(n int) int {
 	if n < 0 {
 		return 0

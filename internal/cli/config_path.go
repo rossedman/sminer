@@ -9,6 +9,9 @@ import (
 	"github.com/rossedman/sminer/internal/config"
 )
 
+// newConfigPathCmd builds config path, which prints the config file sminer
+// reads. With --json it also reports whether the file exists and the data
+// directory.
 func newConfigPathCmd(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "path",

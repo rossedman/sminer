@@ -114,6 +114,8 @@ func (s Service) view(f store.Finding, sessions map[string]store.Session, maxExc
 	return v, nil
 }
 
+// adoptedAt returns when the finding was adopted, or false if it has no
+// adoption record.
 func (s Service) adoptedAt(id string) (time.Time, bool) {
 	var ms int64
 	if err := s.Store.DB.QueryRow(`SELECT adopted_at FROM adoptions WHERE finding_id=?`, id).Scan(&ms); err != nil {
@@ -250,6 +252,8 @@ ON CONFLICT(finding_id) DO UPDATE SET adopted_at=excluded.adopted_at, patch_path
 	return results, tx.Commit()
 }
 
+// patchFor returns the patch path for the finding with the given id, or an
+// empty string if results has none.
 func patchFor(results []AcceptResult, id string) string {
 	for _, r := range results {
 		if r.ID == id {
@@ -276,6 +280,8 @@ func (s Service) Reopen(id string) error {
 	return err
 }
 
+// setStatus sets the status and reason of the stored finding id and saves it.
+// It returns the error from the store if the finding does not exist.
 func (s Service) setStatus(id, status, reason string) error {
 	f, err := s.Store.GetFinding(id)
 	if err != nil {

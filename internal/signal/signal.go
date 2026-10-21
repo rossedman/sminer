@@ -225,6 +225,8 @@ func Detect(sess store.Session, turns []store.Turn) []store.Signal {
 	return out
 }
 
+// dedupeByEvent returns ts with only the first turn of each event uuid, in
+// order.
 func dedupeByEvent(ts []store.Turn) []store.Turn {
 	seen := map[string]bool{}
 	var out []store.Turn
@@ -238,6 +240,7 @@ func dedupeByEvent(ts []store.Turn) []store.Turn {
 	return out
 }
 
+// hasToolUse reports whether ts has a tool-use turn.
 func hasToolUse(ts []store.Turn) bool {
 	for _, t := range ts {
 		if t.Kind == ingest.KindToolUse {
@@ -247,6 +250,8 @@ func hasToolUse(ts []store.Turn) bool {
 	return false
 }
 
+// describeAction summarises t for the classifier: what the assistant said, or
+// the tool name, key and text, each truncated.
 func describeAction(t store.Turn) string {
 	if t.Kind == ingest.KindAssistantText {
 		return "Assistant said: " + textutil.Truncate(textutil.OneLine(t.Text), 300)
@@ -360,6 +365,9 @@ func Run(ctx context.Context, st *store.Store, opt Options) (Stats, error) {
 	return stats, r.Err()
 }
 
+// replaceSessionSignals makes sigs the signals of session sid in one
+// transaction. Stale signals not in sigs are deleted, except repeated-
+// instruction signals, and the session is marked clean.
 func replaceSessionSignals(st *store.Store, sid string, sigs []store.Signal) error {
 	tx, err := st.DB.Begin()
 	if err != nil {
@@ -400,6 +408,9 @@ func replaceSessionSignals(st *store.Store, sid string, sigs []store.Signal) err
 	return tx.Commit()
 }
 
+// upsertSignal inserts s, or updates the existing signal with the same id. If
+// the excerpt changed, the classification, confirmation and embedding are
+// reset.
 func upsertSignal(tx *sql.Tx, s store.Signal) error {
 	_, err := tx.Exec(`INSERT INTO signals(id, session_id, repo, type, weight, ts, excerpt, context, key, file_id, file_offset)
 VALUES(?,?,?,?,?,?,?,?,?,?,?)

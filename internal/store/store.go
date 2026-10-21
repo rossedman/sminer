@@ -317,6 +317,9 @@ const (
 
 const findingCols = `id, title, family, key, remedy_type, proposal, target, covered_by, status, reason, centroid, first_seen, last_seen, updated_at, synthesized`
 
+// scanFinding reads one findings row from sc into a Finding, decoding the
+// centroid and timestamps. The scan error, if any, is returned with the partly
+// filled Finding.
 func scanFinding(sc interface{ Scan(...any) error }) (Finding, error) {
 	var f Finding
 	var c []byte

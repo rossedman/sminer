@@ -34,6 +34,8 @@ type Env struct {
 	Progress func(format string, args ...any)
 }
 
+// progress reports a progress message through the Progress callback, if one is
+// set.
 func (e Env) progress(format string, args ...any) {
 	if e.Progress != nil {
 		e.Progress(format, args...)
@@ -47,6 +49,7 @@ type Scope struct {
 	MinCount int
 }
 
+// since returns the start of the window that ends at now.
 func (s Scope) since(now time.Time) time.Time { return now.Add(-s.Window) }
 
 // IngestResult summarises an ingest run.
@@ -192,11 +195,13 @@ func Report(env Env, scope Scope) (report.Report, error) {
 // Duration marshals as a string like "1.25s".
 type Duration time.Duration
 
+// String formats d rounded to the millisecond.
 func (d Duration) String() string { return time.Duration(d).Round(time.Millisecond).String() }
 
 // MarshalText implements encoding.TextMarshaler.
 func (d Duration) MarshalText() ([]byte, error) { return []byte(d.String()), nil }
 
+// nonNil returns m, or an empty map if m is nil, so it encodes as {} in JSON.
 func nonNil(m map[string]int) map[string]int {
 	if m == nil {
 		return map[string]int{}
