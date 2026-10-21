@@ -170,7 +170,9 @@ func decodeBlocks(raw json.RawMessage) []Block {
 		var rbs []rawBlock
 		if json.Unmarshal(raw, &rbs) != nil {
 			// Fall back to decoding element by element so one odd block
-			// does not discard the whole message.
+			// does not discard the whole message. The failed decode may have
+			// filled rbs partway, so start over.
+			rbs = nil
 			var elems []json.RawMessage
 			if json.Unmarshal(raw, &elems) != nil {
 				return nil

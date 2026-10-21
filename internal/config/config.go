@@ -10,6 +10,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -265,11 +266,14 @@ func ParseDuration(s string) (time.Duration, error) {
 		if err != nil || n < 0 {
 			return 0, fmt.Errorf("bad duration %q (want e.g. 90d, 2w, 12h)", s)
 		}
-		d := time.Duration(n) * 24 * time.Hour
+		per := 24 * time.Hour
 		if unit == 'w' {
-			d *= 7
+			per *= 7
 		}
-		return d, nil
+		if int64(n) > int64(time.Duration(math.MaxInt64)/per) {
+			return 0, fmt.Errorf("duration %q is too long", s)
+		}
+		return time.Duration(n) * per, nil
 	}
 	d, err := time.ParseDuration(s)
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/rossedman/sminer/internal/classify"
 	"github.com/rossedman/sminer/internal/cluster"
@@ -304,7 +305,8 @@ func ExtractHook(text string) (Proposal, bool) {
 			}
 		}
 		for _, m := range backtick.FindAllStringSubmatch(text, -1) {
-			if f := strings.Fields(m[1]); len(f) > 0 && knownCLIs[f[0]] {
+			// A pattern must be valid UTF-8 to compile.
+			if f := strings.Fields(m[1]); len(f) > 0 && knownCLIs[f[0]] && utf8.ValidString(m[1]) {
 				return Proposal{Rule: rule, Matcher: "Bash", Field: "command", Pattern: regexp.QuoteMeta(m[1])}, true
 			}
 		}

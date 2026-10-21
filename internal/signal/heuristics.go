@@ -8,6 +8,10 @@ import (
 	"github.com/rossedman/sminer/internal/textutil"
 )
 
+// hookErrorRe finds "hook error:" in any case. Matching on the original text
+// keeps the index valid; lowercasing first can change byte offsets.
+var hookErrorRe = regexp.MustCompile(`(?i)hook error:`)
+
 var (
 	strongRe = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)^\s*(no|nope|nah|stop|wait|hold on)\b[\s,.!-]`),
@@ -90,8 +94,8 @@ func HookKey(text string) (key, message string) {
 	msg := text
 	if i := strings.LastIndex(msg, "]: "); i >= 0 {
 		msg = msg[i+3:]
-	} else if i := strings.Index(strings.ToLower(msg), "hook error:"); i >= 0 {
-		msg = msg[i+len("hook error:"):]
+	} else if loc := hookErrorRe.FindStringIndex(msg); loc != nil {
+		msg = msg[loc[1]:]
 	}
 	message = textutil.Truncate(textutil.FirstLine(msg), 200)
 	if label == "" {
