@@ -17,6 +17,7 @@ import (
 	"github.com/rossedman/sminer/internal/config"
 	"github.com/rossedman/sminer/internal/remedy"
 	"github.com/rossedman/sminer/internal/store"
+	"github.com/rossedman/sminer/internal/version"
 )
 
 var candidateLabels, _ = filepath.Abs("../../testdata/labels/candidates.jsonl")
@@ -59,6 +60,29 @@ func TestVersionCommand(t *testing.T) {
 	}
 	if r := h.ok("--version"); !strings.HasPrefix(r.stdout, "sminer ") {
 		t.Errorf("--version = %q", r.stdout)
+	}
+}
+
+func TestVersionStampedBuild(t *testing.T) {
+	// Not parallel: sets the ldflags-stamped package variables.
+	oldV, oldC, oldD := version.Version, version.Commit, version.Date
+	t.Cleanup(func() { version.Version, version.Commit, version.Date = oldV, oldC, oldD })
+	h := newHarness(t)
+
+	version.Version, version.Commit, version.Date = "v9.9.9", "0123456789ab", "2026-10-20T15:03:39Z"
+	if r := h.ok("version"); !strings.HasPrefix(r.stdout, "sminer v9.9.9 (0123456789ab, 2026-10-20T15:03:39Z) go") {
+		t.Errorf("version = %q", r.stdout)
+	}
+	var v struct {
+		Date string `json:"date"`
+	}
+	if err := json.Unmarshal([]byte(h.ok("version", "--json").stdout), &v); err != nil || v.Date != "2026-10-20T15:03:39Z" {
+		t.Errorf("version --json date = %q (%v)", v.Date, err)
+	}
+
+	version.Date = ""
+	if r := h.ok("version"); !strings.HasPrefix(r.stdout, "sminer v9.9.9 (0123456789ab) go") {
+		t.Errorf("version without date = %q", r.stdout)
 	}
 }
 

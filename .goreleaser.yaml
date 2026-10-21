@@ -20,6 +20,7 @@ builds:
       - -s -w
       - -X github.com/rossedman/sminer/internal/version.Version={{ .Tag }}
       - -X github.com/rossedman/sminer/internal/version.Commit={{ .ShortCommit }}
+      - -X github.com/rossedman/sminer/internal/version.Date={{ .CommitDate }}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:

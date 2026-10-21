@@ -28,7 +28,10 @@ func newVersionCmd(a *app) *cobra.Command {
 				}{info, commandTree(cmd.Root())})
 			}
 			fmt.Fprintf(a.out, "sminer %s", info.Version)
-			if info.Commit != "" {
+			switch {
+			case info.Commit != "" && info.Date != "":
+				fmt.Fprintf(a.out, " (%s, %s)", info.Commit, info.Date)
+			case info.Commit != "":
 				fmt.Fprintf(a.out, " (%s)", info.Commit)
 			}
 			fmt.Fprintf(a.out, " %s %s/%s\n", info.Go, info.OS, info.Arch)

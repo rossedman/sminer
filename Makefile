@@ -2,7 +2,8 @@
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null)
-LDFLAGS := -X github.com/rossedman/sminer/internal/version.Version=$(VERSION) -X github.com/rossedman/sminer/internal/version.Commit=$(COMMIT)
+DATE    ?= $(shell git log -1 --format=%cI 2>/dev/null)
+LDFLAGS := -X github.com/rossedman/sminer/internal/version.Version=$(VERSION) -X github.com/rossedman/sminer/internal/version.Commit=$(COMMIT) -X github.com/rossedman/sminer/internal/version.Date=$(DATE)
 
 GOVULNCHECK := golang.org/x/vuln/cmd/govulncheck@v1.9.0
 FUZZTIME    ?= 30s
