@@ -78,8 +78,12 @@ remedies:
 | `remedies.settings` | `~/.claude/settings.json` | Claude Code settings, read for existing hooks |
 | `db` | `$XDG_DATA_HOME/sminer/sminer.db` | The database. Flag: `--db` |
 | `patch_dir` | `$XDG_DATA_HOME/sminer/patches` | Where accepted patches are written |
+| `json` | `false` | Print machine-readable JSON on stdout. Flag: `--json` |
+| `quiet` | `false` | Print nothing on stderr except errors. Flag: `--quiet` |
+| `verbose` | `false` | Print detail on stderr. Flag: `--verbose` |
+| `no_color` | `false` | Disable color. Flag: `--no-color` |
 
-Paths may start with `~`. Invalid values (a bad `window`, a `min_count` below 1, an unknown `embeddings.provider`) are rejected up front with exit code 2.
+Paths may start with `~`. Invalid values (a bad `window`, a `min_count` below 1, an unknown `embeddings.provider`, or `quiet` and `verbose` both set without either flag) are rejected up front with exit code 2.
 
 ## Credentials
 

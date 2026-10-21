@@ -35,6 +35,7 @@ nav:
       - Evaluation: evaluation.md
       - Design and development: design.md
       - Releasing: releasing.md
+      - Changelog: https://github.com/rossedman/sminer/releases
 
 theme:
   name: material
