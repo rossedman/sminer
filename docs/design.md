@@ -53,12 +53,17 @@ Packages map one-to-one to pipeline stages. The CLI holds no domain logic: comma
 ## Development
 
 ```bash
-make check      # gofmt, go vet, tests
+make check      # everything CI runs (see CONTRIBUTING.md)
+make cover      # race tests with the 90% coverage gate
 make eval       # heuristic precision on the labelled set
-make fuzz       # fuzz the transcript decoder
+make fuzz       # every fuzz target, 30s each
+make bench      # benchmarks, saved under bench/ for benchstat
+make docs       # regenerate the command reference
 make build      # binary with version and commit stamped in
 make fixtures   # regenerate the synthetic transcript corpus
 ```
+
+[CONTRIBUTING.md](https://github.com/rossedman/sminer/blob/main/CONTRIBUTING.md) has the quality bars and the list of critical paths that need benchmarks and fuzz targets.
 
 `testdata/projects` is a synthetic, redacted corpus that covers both transcript formats (string content in 1.0.x, block content in 2.0.x), with interrupts, rewinds, hook blocks, malformed lines and a partial trailing line. The end-to-end tests run the whole CLI against it.
 

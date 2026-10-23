@@ -369,6 +369,25 @@ func TestConfigPrecedence(t *testing.T) {
 	}
 }
 
+func TestOutputFlagsFromEnv(t *testing.T) {
+	h := newHarness(t)
+	t.Setenv("SMINER_JSON", "1")
+	var list []any
+	if err := json.Unmarshal([]byte(h.ok("finding", "list").stdout), &list); err != nil {
+		t.Errorf("SMINER_JSON=1 finding list is not JSON: %v", err)
+	}
+
+	t.Setenv("SMINER_QUIET", "1")
+	t.Setenv("SMINER_VERBOSE", "1")
+	if r := h.run("ingest"); r.code != ExitUsage {
+		t.Errorf("SMINER_QUIET and SMINER_VERBOSE together: exit %d, stderr %q", r.code, r.stderr)
+	}
+	// A flag settles the conflict.
+	if r := h.run("ingest", "--quiet"); r.code != ExitOK || r.stderr != "" {
+		t.Errorf("--quiet over SMINER_VERBOSE: exit %d, stderr %q", r.code, r.stderr)
+	}
+}
+
 func TestDeprecatedNamesStillWork(t *testing.T) {
 	h := newHarness(t)
 	h.ok("run", "--no-llm", "--quiet")

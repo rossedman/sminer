@@ -172,12 +172,12 @@ func (t Theme) Status(status string) string {
 	return status
 }
 
-// Bar is a horizontal meter of width cells for v out of max.
-func (t Theme) Bar(v, max float64, width int, c color.Color) string {
-	if max <= 0 {
-		max = 1
+// Bar is a horizontal meter of width cells for v out of total.
+func (t Theme) Bar(v, total float64, width int, c color.Color) string {
+	if total <= 0 {
+		total = 1
 	}
-	n := int(v/max*float64(width) + 0.5)
+	n := int(v/total*float64(width) + 0.5)
 	n = min(max0(n), width)
 	if v > 0 && n == 0 {
 		n = 1
@@ -186,6 +186,7 @@ func (t Theme) Bar(v, max float64, width int, c color.Color) string {
 		t.Faint.Render(strings.Repeat("─", width-n))
 }
 
+// max0 returns n, or 0 if n is negative.
 func max0(n int) int {
 	if n < 0 {
 		return 0

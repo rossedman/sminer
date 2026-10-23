@@ -8,6 +8,7 @@ import (
 	"github.com/rossedman/sminer/internal/cli"
 )
 
+// main runs the CLI and exits with the status it returns.
 func main() {
 	os.Exit(cli.Execute())
 }

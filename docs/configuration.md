@@ -8,7 +8,7 @@ The first layer that sets a value wins:
 
 1. **Command-line flags**, such as `--since 30d`
 2. **Environment variables**: `SMINER_` plus the key in upper case, with dots as underscores. `classifier.model` is `SMINER_CLASSIFIER_MODEL`.
-3. **The config file**: `$XDG_CONFIG_HOME/sminer/config.yaml` (by default `~/.config/sminer/config.yaml`), or the file named by `--config`
+3. **The config file**: the file named by `--config`, or else the first of these that exists: `$XDG_CONFIG_HOME/sminer/config.yaml` (by default `~/.config/sminer/config.yaml`), `~/.sminer.yaml`, `./.sminer.yaml`
 4. **Built-in defaults**
 
 `sminer config show` prints every effective value and which layer set it:
@@ -78,8 +78,12 @@ remedies:
 | `remedies.settings` | `~/.claude/settings.json` | Claude Code settings, read for existing hooks |
 | `db` | `$XDG_DATA_HOME/sminer/sminer.db` | The database. Flag: `--db` |
 | `patch_dir` | `$XDG_DATA_HOME/sminer/patches` | Where accepted patches are written |
+| `json` | `false` | Print machine-readable JSON on stdout. Flag: `--json` |
+| `quiet` | `false` | Print nothing on stderr except errors. Flag: `--quiet` |
+| `verbose` | `false` | Print detail on stderr. Flag: `--verbose` |
+| `no_color` | `false` | Disable color. Flag: `--no-color` |
 
-Paths may start with `~`. Invalid values (a bad `window`, a `min_count` below 1, an unknown `embeddings.provider`) are rejected up front with exit code 2.
+Paths may start with `~`. Invalid values (a bad `window`, a `min_count` below 1, an unknown `embeddings.provider`, or `quiet` and `verbose` both set without either flag) are rejected up front with exit code 2.
 
 ## Credentials
 
@@ -91,7 +95,7 @@ sminer follows the XDG base directory spec, on macOS too:
 
 | What | Where |
 |---|---|
-| Config file | `$XDG_CONFIG_HOME/sminer/config.yaml`, default `~/.config/sminer/config.yaml` |
+| Config file | `$XDG_CONFIG_HOME/sminer/config.yaml`, default `~/.config/sminer/config.yaml`; then `~/.sminer.yaml` and `./.sminer.yaml` |
 | Database and patches | `$XDG_DATA_HOME/sminer/`, default `~/.local/share/sminer/` |
 
 ## Better clustering with ollama

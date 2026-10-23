@@ -124,6 +124,9 @@ type lshIndex struct {
 	buckets []map[uint8][]int
 }
 
+// newLSH returns an empty LSH index for vectors of the given dimension. The
+// random hyperplanes come from a fixed seed, so signatures are the same on
+// every run.
 func newLSH(dims int) *lshIndex {
 	r := rand.New(rand.NewSource(42))
 	l := &lshIndex{buckets: make([]map[uint8][]int, lshBands)}
@@ -140,6 +143,8 @@ func newLSH(dims int) *lshIndex {
 	return l
 }
 
+// sig returns the signature of v: one byte per band, with a bit set for each
+// hyperplane that v lies on the positive side of.
 func (l *lshIndex) sig(v []float32) [lshBands]uint8 {
 	var s [lshBands]uint8
 	for i, p := range l.planes {
@@ -154,6 +159,8 @@ func (l *lshIndex) sig(v []float32) [lshBands]uint8 {
 	return s
 }
 
+// candidates appends to out the clusters sharing a bucket with v in any band.
+// The stamp slice and mark keep each cluster from being added twice.
 func (l *lshIndex) candidates(v []float32, out []int, stamp []int32, mark int32) []int {
 	s := l.sig(v)
 	for b, key := range s {
@@ -167,6 +174,8 @@ func (l *lshIndex) candidates(v []float32, out []int, stamp []int32, mark int32)
 	return out
 }
 
+// add records cluster in the bucket for v in every band, skipping a repeat of
+// the bucket's most recent entry.
 func (l *lshIndex) add(v []float32, cluster int) {
 	s := l.sig(v)
 	for b, key := range s {

@@ -270,7 +270,7 @@ func scanSignal(sc interface{ Scan(...any) error }) (Signal, error) {
 func (s *Store) QuerySignals(where string, args ...any) ([]Signal, error) {
 	q := `SELECT ` + signalCols + ` FROM signals`
 	if where != "" {
-		q += ` WHERE ` + where
+		q += ` WHERE ` + where //nolint:gosec // G202: callers pass constant clauses; values go through args
 	}
 	q += ` ORDER BY ts, id`
 	rows, err := s.DB.Query(q, args...)
@@ -317,6 +317,9 @@ const (
 
 const findingCols = `id, title, family, key, remedy_type, proposal, target, covered_by, status, reason, centroid, first_seen, last_seen, updated_at, synthesized`
 
+// scanFinding reads one findings row from sc into a Finding, decoding the
+// centroid and timestamps. The scan error, if any, is returned with the partly
+// filled Finding.
 func scanFinding(sc interface{ Scan(...any) error }) (Finding, error) {
 	var f Finding
 	var c []byte
@@ -346,7 +349,7 @@ func (s *Store) GetFinding(id string) (Finding, error) {
 func (s *Store) QueryFindings(where string, args ...any) ([]Finding, error) {
 	q := `SELECT ` + findingCols + ` FROM findings`
 	if where != "" {
-		q += ` WHERE ` + where
+		q += ` WHERE ` + where //nolint:gosec // G202: callers pass constant clauses; values go through args
 	}
 	q += ` ORDER BY id`
 	rows, err := s.DB.Query(q, args...)

@@ -1,14 +1,16 @@
 // Package config resolves sminer's settings.
 //
 // Precedence, highest first: command-line flags, SMINER_* environment
-// variables, the config file, built-in defaults. The file lives at
-// $XDG_CONFIG_HOME/sminer/config.yaml (default ~/.config/sminer/config.yaml)
-// and is optional: sminer runs with no configuration at all.
+// variables, the config file, built-in defaults. The file is the first of
+// $XDG_CONFIG_HOME/sminer/config.yaml (default ~/.config/sminer/config.yaml),
+// ~/.sminer.yaml and ./.sminer.yaml that exists, and is optional: sminer
+// runs with no configuration at all.
 package config
 
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -36,14 +38,20 @@ type Config struct {
 	Remedies     Remedies   `mapstructure:"remedies" json:"remedies"`
 	DB           string     `mapstructure:"db" json:"db"`
 	PatchDir     string     `mapstructure:"patch_dir" json:"patch_dir"`
+	JSON         bool       `mapstructure:"json" json:"json"`
+	Quiet        bool       `mapstructure:"quiet" json:"quiet"`
+	Verbose      bool       `mapstructure:"verbose" json:"verbose"`
+	NoColor      bool       `mapstructure:"no_color" json:"no_color"`
 }
 
+// Classifier configures the LLM pass that confirms candidate corrections.
 type Classifier struct {
 	Model          string `mapstructure:"model" json:"model"`
 	MaxCallsPerRun int    `mapstructure:"max_calls_per_run" json:"max_calls_per_run"`
 	Concurrency    int    `mapstructure:"concurrency" json:"concurrency"`
 }
 
+// Embeddings selects how signal text is embedded for clustering.
 type Embeddings struct {
 	// Provider is "auto" (ollama if reachable, else hash), "ollama" or "hash".
 	Provider string `mapstructure:"provider" json:"provider"`
@@ -51,16 +59,21 @@ type Embeddings struct {
 	URL      string `mapstructure:"url" json:"url"`
 }
 
+// Cluster tunes how embedded signals are grouped into findings.
 type Cluster struct {
 	// Threshold is the cosine similarity needed to join a cluster.
 	// Zero means the embedder's default.
 	Threshold float64 `mapstructure:"threshold" json:"threshold"`
 }
 
+// Redact lists extra regular expressions scrubbed from text before it is
+// stored or sent anywhere.
 type Redact struct {
 	Patterns []string `mapstructure:"patterns" json:"patterns"`
 }
 
+// Remedies points at the existing hooks, CLAUDE.md, skills and settings that
+// proposals are checked against and written for.
 type Remedies struct {
 	HooksDir       string `mapstructure:"hooks_dir" json:"hooks_dir"`
 	GlobalClaudeMD string `mapstructure:"global_claude_md" json:"global_claude_md"`
@@ -90,6 +103,10 @@ func defaults() map[string]any {
 		"remedies.settings":            "~/.claude/settings.json",
 		"db":                           filepath.Join(DataDir(), "sminer.db"),
 		"patch_dir":                    filepath.Join(DataDir(), "patches"),
+		"json":                         false,
+		"quiet":                        false,
+		"verbose":                      false,
+		"no_color":                     false,
 	}
 }
 
@@ -102,6 +119,7 @@ func Keys() []string {
 		"cluster.threshold", "redact.patterns",
 		"remedies.hooks_dir", "remedies.global_claude_md", "remedies.skills_dir", "remedies.settings",
 		"db", "patch_dir",
+		"json", "quiet", "verbose", "no_color",
 	}
 }
 
@@ -110,12 +128,15 @@ func EnvVar(key string) string {
 	return EnvPrefix + "_" + strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
 }
 
-// ConfigDir is $XDG_CONFIG_HOME/sminer, defaulting to ~/.config/sminer.
-func ConfigDir() string { return xdg("XDG_CONFIG_HOME", ".config") }
+// Dir is $XDG_CONFIG_HOME/sminer, defaulting to ~/.config/sminer.
+func Dir() string { return xdg("XDG_CONFIG_HOME", ".config") }
 
 // DataDir is $XDG_DATA_HOME/sminer, defaulting to ~/.local/share/sminer.
 func DataDir() string { return xdg("XDG_DATA_HOME", ".local/share") }
 
+// xdg returns the sminer directory under the XDG base directory named by env,
+// if that is set to an absolute path, otherwise under fallback in the home
+// directory.
 func xdg(env, fallback string) string {
 	if d := os.Getenv(env); d != "" && filepath.IsAbs(d) {
 		return filepath.Join(d, "sminer")
@@ -123,8 +144,25 @@ func xdg(env, fallback string) string {
 	return filepath.Join(Expand("~"), fallback, "sminer")
 }
 
-// DefaultFile is the config file read when none is named.
-func DefaultFile() string { return filepath.Join(ConfigDir(), "config.yaml") }
+// DefaultFile is the preferred config file location, and the one suggested
+// when none exists yet.
+func DefaultFile() string { return filepath.Join(Dir(), "config.yaml") }
+
+// SearchPaths lists the config files tried, in order, when none is named.
+func SearchPaths() []string {
+	return []string{DefaultFile(), filepath.Join(Expand("~"), ".sminer.yaml"), ".sminer.yaml"}
+}
+
+// Find returns the first config file in SearchPaths that exists, or "" when
+// there is none.
+func Find() string {
+	for _, f := range SearchPaths() {
+		if _, err := os.Stat(f); err == nil {
+			return f
+		}
+	}
+	return ""
+}
 
 // Setup prepares v with defaults and environment binding. Call it before
 // binding flags and before Load.
@@ -144,17 +182,17 @@ var ErrNoFile = errors.New("config file not found")
 // value as a usage error.
 var ErrInvalid = errors.New("invalid configuration")
 
-// Load reads the config file (path, or the default location when empty)
+// Load reads the config file (path, or the first of SearchPaths when empty)
 // into v and returns the resolved configuration and the file actually used
-// ("" when none). A missing default file is fine; a missing named one is not.
+// ("" when none). Having no file is fine; a missing named one is not.
 func Load(v *viper.Viper, path string) (Config, string, error) {
 	file := path
 	if file == "" {
-		file = DefaultFile()
+		file = Find()
 	}
 	file = Expand(file)
 	used := ""
-	if _, err := os.Stat(file); err == nil {
+	if _, err := os.Stat(file); file != "" && err == nil {
 		v.SetConfigFile(file)
 		if err := v.ReadInConfig(); err != nil {
 			return Config{}, "", fmt.Errorf("read %s: %w", file, err)
@@ -228,11 +266,14 @@ func ParseDuration(s string) (time.Duration, error) {
 		if err != nil || n < 0 {
 			return 0, fmt.Errorf("bad duration %q (want e.g. 90d, 2w, 12h)", s)
 		}
-		d := time.Duration(n) * 24 * time.Hour
+		per := 24 * time.Hour
 		if unit == 'w' {
-			d *= 7
+			per *= 7
 		}
-		return d, nil
+		if int64(n) > int64(time.Duration(math.MaxInt64)/per) {
+			return 0, fmt.Errorf("duration %q is too long", s)
+		}
+		return time.Duration(n) * per, nil
 	}
 	d, err := time.ParseDuration(s)
 	if err != nil {

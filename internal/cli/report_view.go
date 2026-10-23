@@ -131,6 +131,8 @@ func renderReport(th ui.Theme, r report.Report, width int) string {
 	return b.String()
 }
 
+// fixLabel returns the display name for a remedy type, or the type itself if
+// it has no special name.
 func fixLabel(rem string) string {
 	switch rem {
 	case remedy.Hook:
@@ -166,6 +168,8 @@ func overviewProposal(th ui.Theme, f report.Finding) string {
 	return th.OK.Render("+ " + p.Rule)
 }
 
+// lowerFirst lowercases the first letter of s so it can follow a lead-in.
+// Words that start with two capitals, such as acronyms, are left alone.
 func lowerFirst(s string) string {
 	if s == "" || (len(s) > 1 && s[1] >= 'A' && s[1] <= 'Z') {
 		return s // acronyms stay as they are

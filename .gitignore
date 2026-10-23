@@ -45,3 +45,13 @@ findings.json
 /dist/
 /completions/
 /manpages/
+
+# benchmark results (make bench)
+/bench/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*~

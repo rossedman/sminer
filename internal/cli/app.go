@@ -38,6 +38,8 @@ type Options struct {
 	ForceInteractive bool
 }
 
+// withDefaults returns o with every unset field replaced by its production
+// default: the process streams, time.Now and the Anthropic classifier.
 func (o Options) withDefaults() Options {
 	if o.Stdin == nil {
 		o.Stdin = os.Stdin
@@ -82,6 +84,9 @@ type app struct {
 	spin    *spinner
 }
 
+// newApp returns an app for opts, with defaults filled in and a fresh viper
+// instance holding the config defaults. No config file is read until the
+// command runs.
 func newApp(opts Options) *app {
 	opts = opts.withDefaults()
 	v := viper.New()
@@ -130,6 +135,25 @@ func (a *app) load(cmd *cobra.Command) error {
 		return err
 	}
 	a.cfg, a.cfgFile, a.loaded = cfg, file, true
+	return a.applyOutput()
+}
+
+// applyOutput lets the environment and config file set the output flags,
+// which are only flags until configuration has been loaded. --quiet or
+// --verbose on the command line beats either one set elsewhere.
+func (a *app) applyOutput() error {
+	a.g.json = a.g.json || a.cfg.JSON
+	if !a.g.quiet && !a.g.verbose {
+		if a.cfg.Quiet && a.cfg.Verbose {
+			return fmt.Errorf("%w: quiet and verbose cannot both be set", config.ErrInvalid)
+		}
+		a.g.quiet, a.g.verbose = a.cfg.Quiet, a.cfg.Verbose
+	}
+	if a.cfg.NoColor && !a.g.noColor {
+		a.g.noColor = true
+		a.out = ui.NewWriter(a.opts.Stdout, true)
+		a.err = ui.NewWriter(a.opts.Stderr, true)
+	}
 	return nil
 }
 
@@ -167,6 +191,8 @@ func (a *app) store() (*store.Store, error) {
 	return st, nil
 }
 
+// close releases the database if the command opened it. It is safe to call
+// when it did not.
 func (a *app) close() {
 	if a.st != nil {
 		a.st.Close()

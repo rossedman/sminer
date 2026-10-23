@@ -46,6 +46,8 @@ func BuildPatch(f store.Finding, cfg config.Config) (Patch, error) {
 	return Patch{}, fmt.Errorf("%w: finding %s has no remedy yet", ErrNoRemedy, f.ID)
 }
 
+// header returns the comment block that starts a patch: the finding, its
+// remedy and how to apply it from base, followed by extra if it is not empty.
 func header(f store.Finding, base string, extra string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "sminer %s: %s\n", f.ID, f.Title)
@@ -58,6 +60,8 @@ func header(f store.Finding, base string, extra string) string {
 	return sb.String()
 }
 
+// claudeMDPatch renders the patch for a single CLAUDE.md finding by passing it
+// to ClaudeMDPatch. The proposal is not used.
 func claudeMDPatch(f store.Finding, p Proposal) (Patch, error) {
 	return ClaudeMDPatch([]store.Finding{f})
 }
@@ -104,6 +108,8 @@ func ClaudeMDPatch(fs []store.Finding) (Patch, error) {
 	return Patch{Base: base, Diff: hdr + diff}, nil
 }
 
+// combinedHeader returns the header for a patch that covers several CLAUDE.md
+// findings, listing each id and title.
 func combinedHeader(fs []store.Finding, base string) string {
 	var sb strings.Builder
 	ids := make([]string, len(fs))
@@ -119,6 +125,9 @@ func combinedHeader(fs []store.Finding, base string) string {
 	return sb.String()
 }
 
+// hookPatch renders a patch creating the hook script at the finding's target,
+// filled in from the hook template. It also returns the settings.json entry to
+// register it. It fails with ErrTargetExists if the script already exists.
 func hookPatch(f store.Finding, p Proposal, cfg config.Config) (Patch, error) {
 	path := f.Target
 	base := filepath.Dir(path)
@@ -144,6 +153,9 @@ func hookPatch(f store.Finding, p Proposal, cfg config.Config) (Patch, error) {
 	return Patch{Base: base, Diff: header(f, base, settings) + diff, Extra: settings}, nil
 }
 
+// skillPatch renders a patch creating a SKILL.md at the finding's target, with
+// the proposal's name, description and numbered steps. It fails with
+// ErrTargetExists if the file already exists.
 func skillPatch(f store.Finding, p Proposal) (Patch, error) {
 	path := f.Target
 	if fileExists(path) {
@@ -174,11 +186,13 @@ func baseFor(path string) string {
 	return dir
 }
 
+// fileExists reports whether p exists.
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
 	return err == nil
 }
 
+// shellQuote returns s in single quotes, safe to paste into a shell script.
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }

@@ -34,6 +34,10 @@ type synthesis struct {
 	Proposal Proposal
 }
 
+// synthesize asks llm to write a title, remedy and proposal for f from its
+// eight most recent signals. A reply that has no JSON or has bad JSON is an
+// error. An unusable hook or skill is downgraded to a CLAUDE.md line, and an
+// unusable hook matcher is replaced by a default for its field.
 func synthesize(ctx context.Context, llm classify.LLM, f store.Finding, sigs []store.Signal) (synthesis, error) {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "%d occurrences across %d sessions.\n\n", len(sigs), countSessions(sigs))
@@ -106,6 +110,7 @@ func synthesize(ctx context.Context, llm classify.LLM, f store.Finding, sigs []s
 	return out, nil
 }
 
+// countSessions returns the number of distinct sessions in sigs.
 func countSessions(sigs []store.Signal) int {
 	m := map[string]bool{}
 	for _, s := range sigs {

@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in sminer doesn't work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please don't paste real transcript lines: they can contain secrets and private code. A redacted or made-up line that reproduces the problem is ideal. Security problems go to the [security policy](https://github.com/rossedman/sminer/security/policy) instead.
+  - type: input
+    id: version
+    attributes:
+      label: sminer version
+      description: Output of `sminer version`.
+      placeholder: sminer v0.2.3 abc123def456 go1.27.3 darwin/arm64
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and architecture, how you installed sminer (Homebrew, archive, go install), and the Claude Code version if relevant.
+      placeholder: macOS 26.1 arm64, Homebrew, Claude Code 2.3.0
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands you ran, and any non-default config (`sminer config show` helps).
+      placeholder: |
+        1. sminer run --offline
+        2. sminer finding accept F1a2b3c
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead, including the exit code if it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output
+      description: Output with `--verbose`, or a crash report. Check it for secrets before posting.
+      render: text

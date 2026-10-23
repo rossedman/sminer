@@ -39,6 +39,8 @@ func (s *spinner) step(msg string) {
 	go s.run(s.stop, s.done)
 }
 
+// run draws the spinner on stderr every 80ms until stop is closed, then closes
+// done.
 func (s *spinner) run(stop, done chan struct{}) {
 	defer close(done)
 	t := time.NewTicker(80 * time.Millisecond)
@@ -97,6 +99,7 @@ func (s *spinner) finish(ok bool) {
 	fmt.Fprintf(s.a.err, "\r\x1b[K%s %s %s\n", mark, s.msg, style(th.Faint, "· "+el.Round(time.Millisecond).String()))
 }
 
+// capitalize returns s with its first byte uppercased.
 func capitalize(s string) string {
 	if s == "" {
 		return s

@@ -26,6 +26,7 @@ type Trend struct {
 	AfterWeeks float64    `json:"after_weeks"`
 }
 
+// WeekStart returns midnight UTC on the Monday of t's week.
 func WeekStart(t time.Time) time.Time {
 	t = t.UTC().Truncate(24 * time.Hour)
 	wd := (int(t.Weekday()) + 6) % 7 // Monday = 0
@@ -78,6 +79,8 @@ func ComputeTrend(st *store.Store, id string, now time.Time) (Trend, error) {
 	return tr, nil
 }
 
+// weeksBetween returns the number of weeks from a to b, but never less than
+// one so it can be used as a divisor.
 func weeksBetween(a, b time.Time) float64 {
 	w := b.Sub(a).Hours() / (24 * 7)
 	if w < 1 {

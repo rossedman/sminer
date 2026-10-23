@@ -191,6 +191,8 @@ func Build(st *store.Store, opt Options) (Report, error) {
 	return r, nil
 }
 
+// scope returns the SQL condition and arguments restricting rows to the
+// options' time window and, if set, repo.
 func scope(opt Options) (string, []any) {
 	where := `ts >= ?`
 	args := []any{store.Ms(opt.Since)}
@@ -201,6 +203,8 @@ func scope(opt Options) (string, []any) {
 	return where, args
 }
 
+// adoptedAt returns when the finding was adopted, or false if it has no
+// adoption record.
 func adoptedAt(st *store.Store, id string) (time.Time, bool) {
 	var ms int64
 	if err := st.DB.QueryRow(`SELECT adopted_at FROM adoptions WHERE finding_id=?`, id).Scan(&ms); err != nil {
@@ -293,6 +297,7 @@ func textUsed(ex []Excerpt, text string) bool {
 	return false
 }
 
+// sessUsed reports whether ex already has an excerpt from session sid.
 func sessUsed(ex []Excerpt, sid string) bool {
 	for _, e := range ex {
 		if e.SessionID == sid {
@@ -349,6 +354,8 @@ func Friction(counts map[string]int) []FrictionCount {
 	return out
 }
 
+// signalSummary formats the friction counts as a one-line summary joined with
+// middle dots.
 func signalSummary(counts map[string]int) string {
 	var parts []string
 	for _, f := range Friction(counts) {
@@ -427,6 +434,9 @@ func WriteMarkdown(w io.Writer, r Report) error {
 	return err
 }
 
+// writeFinding writes finding f to b as a numbered Markdown section: title,
+// fix, how often and where it was seen, the proposal for its remedy and the
+// commands to act on it.
 func writeFinding(b *strings.Builder, n int, f Finding) {
 	status := ""
 	if f.Status == store.StatusAccepted {
@@ -512,6 +522,8 @@ func ShortRepo(p string) string {
 	return p
 }
 
+// shortRepos returns the short names of rs in code formatting, without
+// duplicates.
 func shortRepos(rs []string) []string {
 	var out []string
 	seen := map[string]bool{}
@@ -541,14 +553,8 @@ func listSome(items []string, n int) string {
 	return fmt.Sprintf("%s and %d more", strings.Join(items[:n], ", "), len(items)-n)
 }
 
-func quoteAll(ss []string) []string {
-	out := make([]string, len(ss))
-	for i, s := range ss {
-		out[i] = "`" + s + "`"
-	}
-	return out
-}
-
+// escapePipes escapes the pipe characters in s so it fits in a Markdown table
+// cell.
 func escapePipes(s string) string { return strings.ReplaceAll(s, "|", `\|`) }
 
 // shellQuote quotes p for a copy-pasted cd when it has spaces; a leading ~

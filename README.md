@@ -6,7 +6,7 @@
   <a href="https://github.com/rossedman/sminer/actions/workflows/ci.yml"><img src="https://github.com/rossedman/sminer/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
   <a href="https://github.com/rossedman/sminer/actions/workflows/pages.yml"><img src="https://github.com/rossedman/sminer/actions/workflows/pages.yml/badge.svg" alt="docs"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f4b443" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/go-1.26-6fdccb" alt="Go 1.26">
+  <img src="https://img.shields.io/badge/go-1.27-6fdccb" alt="Go 1.27">
 </p>
 
 sminer (session miner) reads your Claude Code session transcripts, finds the corrections and friction you repeat across sessions, and proposes a concrete fix for each: a hook, a CLAUDE.md line, or a skill. It turns your guardrails from hand-curated into evidence-driven.
@@ -36,7 +36,7 @@ With Homebrew, on macOS or Linux:
 brew install rossedman/tap/sminer
 ```
 
-Or download an archive for your platform from the [releases page](https://github.com/rossedman/sminer/releases) and put `sminer` on your `PATH`. Archives include shell completions and a man page. With Go 1.26 or later:
+Or download an archive for your platform from the [releases page](https://github.com/rossedman/sminer/releases) and put `sminer` on your `PATH`. Archives include shell completions and a man page, and their checksums are signed; [SECURITY.md](SECURITY.md#verifying-releases) shows how to verify a download. With Go 1.27 or later:
 
 ```sh
 go install github.com/rossedman/sminer/cmd/sminer@latest
@@ -152,7 +152,7 @@ sminer runs with no configuration. To change a setting, use a flag, an environme
 
 1. command-line flags
 2. `SMINER_*` environment variables: every key has one, e.g. `classifier.model` is `SMINER_CLASSIFIER_MODEL`, and `SMINER_OFFLINE=1` keeps everything local
-3. the config file, `$XDG_CONFIG_HOME/sminer/config.yaml` (default `~/.config/sminer/config.yaml`), or the one named by `--config`
+3. the config file named by `--config`, or else the first of `$XDG_CONFIG_HOME/sminer/config.yaml` (default `~/.config/sminer/config.yaml`), `~/.sminer.yaml` and `./.sminer.yaml`
 4. built-in defaults
 
 `sminer config show` prints every effective value and the layer that set it. `sminer config path` prints the file location. See [`config.example.yaml`](config.example.yaml) for every key:
@@ -215,8 +215,12 @@ sminer eval --live   # also scores the live classifier (makes API calls)
 ## Development
 
 ```sh
-make check      # gofmt, go vet, tests
-make fuzz       # fuzz the line decoder
+make check      # everything CI runs: lint, race tests, 90% coverage gate, doc and command checks, govulncheck, fuzzing, docs build
+make cover      # tests with the coverage gate
+make fuzz       # every fuzz target, 30s each
+make bench      # benchmarks, saved under bench/ for benchstat
 ```
+
+[CONTRIBUTING.md](CONTRIBUTING.md) has the quality bars, the critical paths and the commit style.
 
 The docs site is MkDocs Material, deployed to GitHub Pages by `.github/workflows/pages.yml`. Preview it with `pip install -r docs/requirements.txt && mkdocs serve`. The banner and diagrams are HTML in `docs/assets/src/`, rendered with `docs/assets/render.sh`.

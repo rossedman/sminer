@@ -2,6 +2,8 @@
 
 sminer's commands read like sentences: `sminer <noun> <verb> <target> --modifier`. Every command has `--help` with examples. Bare `sminer` prints help.
 
+This page is an overview. The [command reference](reference/commands/sminer.md) has every command's flags and examples, generated from the CLI itself.
+
 ```text
 Mining
   sminer run        ingest, analyze and print the report
@@ -25,13 +27,13 @@ Other
 
 | Flag | Meaning |
 |---|---|
-| `--config FILE` | Config file to read. Default: `$XDG_CONFIG_HOME/sminer/config.yaml`. |
+| `--config FILE` | Config file to read. Default: the first of `$XDG_CONFIG_HOME/sminer/config.yaml`, `~/.sminer.yaml` and `./.sminer.yaml` that exists. |
 | `--db FILE` | Database file. Default: `$XDG_DATA_HOME/sminer/sminer.db`. |
 | `--offline` | Never call the network. Same as `SMINER_OFFLINE=1`. |
-| `--json` | Print machine-readable JSON on stdout. |
-| `-q`, `--quiet` | Print nothing on stderr except errors. |
-| `-v`, `--verbose` | Print detail on stderr. |
-| `--no-color` | Disable color. Same as `NO_COLOR=1`. |
+| `--json` | Print machine-readable JSON on stdout. Same as `SMINER_JSON=1`. |
+| `-q`, `--quiet` | Print nothing on stderr except errors. Same as `SMINER_QUIET=1`. |
+| `-v`, `--verbose` | Print detail on stderr. Same as `SMINER_VERBOSE=1`. |
+| `--no-color` | Disable color. Same as `NO_COLOR=1` or `SMINER_NO_COLOR=1`. |
 
 ## Mining
 

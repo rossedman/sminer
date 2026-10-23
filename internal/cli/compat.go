@@ -58,6 +58,8 @@ func (a *app) warnDeprecated(cmd *cobra.Command) {
 	})
 }
 
+// findSub returns the command at path under root. It panics if the path does
+// not resolve, since the compat table is fixed at build time.
 func findSub(root *cobra.Command, path ...string) *cobra.Command {
 	c, _, err := root.Find(path)
 	if err != nil || c == root {

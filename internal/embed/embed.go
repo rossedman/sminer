@@ -52,8 +52,14 @@ type Hash struct{}
 
 const hashDims = 256
 
-func (Hash) Name() string       { return "hash-v4" }
+// Name identifies the embedder and its version, so stored vectors from an
+// older scheme are recomputed.
+func (Hash) Name() string { return "hash-v4" }
+
+// Threshold is the cosine similarity at which two hashed texts cluster.
 func (Hash) Threshold() float64 { return 0.45 }
+
+// Embed returns one normalized feature-hashed vector per text.
 func (h Hash) Embed(texts []string) ([][]float32, error) {
 	out := make([][]float32, len(texts))
 	for i, t := range texts {
@@ -62,6 +68,9 @@ func (h Hash) Embed(texts []string) ([][]float32, error) {
 	return out, nil
 }
 
+// vec returns the hashed feature vector for s: stemmed tokens, with framing
+// words and one-letter tokens dropped and dotted or slashed tokens also split
+// into parts.
 func (Hash) vec(s string) []float32 {
 	v := make([]float32, hashDims)
 	all := textutil.Tokens(s)
@@ -107,6 +116,8 @@ var framing = map[string]bool{
 	"stop": true, "wrong": true, "ok": true, "okay": true, "hmm": true, "use": true,
 }
 
+// stem strips a common English suffix from w, keeping at least three letters.
+// Short words are returned unchanged.
 func stem(w string) string {
 	for _, suf := range []string{"ing", "ed", "es", "s"} {
 		if len(w) > len(suf)+3 && strings.HasSuffix(w, suf) {
@@ -123,9 +134,14 @@ type Ollama struct {
 	client *http.Client
 }
 
-func (o *Ollama) Name() string       { return "ollama:" + o.Model }
+// Name identifies the embedder by its model, so switching models re-embeds.
+func (o *Ollama) Name() string { return "ollama:" + o.Model }
+
+// Threshold is the cosine similarity at which two model embeddings cluster.
 func (o *Ollama) Threshold() float64 { return 0.78 }
 
+// http returns the HTTP client, creating one with a 60 second timeout on first
+// use.
 func (o *Ollama) http() *http.Client {
 	if o.client == nil {
 		o.client = &http.Client{Timeout: 60 * time.Second}
@@ -165,6 +181,7 @@ func (o *Ollama) Available() bool {
 	return false
 }
 
+// Embed asks the ollama server for one embedding per text.
 func (o *Ollama) Embed(texts []string) ([][]float32, error) {
 	out := make([][]float32, 0, len(texts))
 	for start := 0; start < len(texts); start += 64 {

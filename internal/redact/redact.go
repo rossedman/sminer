@@ -76,6 +76,7 @@ func (r *Redactor) String(s string) string {
 	return s
 }
 
+// hasAny reports whether s contains any of subs.
 func hasAny(s string, subs []string) bool {
 	for _, sub := range subs {
 		if strings.Contains(s, sub) {

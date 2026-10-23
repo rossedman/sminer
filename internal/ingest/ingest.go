@@ -270,6 +270,8 @@ type knownFile struct {
 	id, size, mtime, offset int64
 }
 
+// knownFiles returns what a previous run recorded about each transcript file,
+// keyed by path.
 func knownFiles(st *store.Store) (map[string]knownFile, error) {
 	rows, err := st.DB.Query(`SELECT id, path, size, mtime, last_offset FROM files`)
 	if err != nil {
@@ -288,6 +290,10 @@ func knownFiles(st *store.Store) (map[string]knownFile, error) {
 	return out, rows.Err()
 }
 
+// parseFile reads the transcript at j.path from j.offset and extracts turns
+// without touching the database. Events older than cutoff are skipped. Session
+// details, event type counts and the resume offset come back in the result,
+// and any error is stored in it rather than returned.
 func parseFile(j fileJob, opt Options, cutoff time.Time, repos *repoResolver) fileResult {
 	res := fileResult{job: j, sessions: map[string]*sessionAgg{}, types: map[string]int{}}
 	f, err := os.Open(j.path)
@@ -351,6 +357,11 @@ func parseFile(j fileJob, opt Options, cutoff time.Time, repos *repoResolver) fi
 	return res
 }
 
+// write stores a parsed file in one transaction and returns how many new turns
+// were inserted. It creates the file row if needed, deletes the file's old
+// turns when the job is a reset, upserts session summaries and marks them
+// dirty, adds event type counts, and records the new size, offset and line
+// count.
 func write(st *store.Store, r fileResult) (int, error) {
 	tx, err := st.DB.Begin()
 	if err != nil {
@@ -423,6 +434,7 @@ ON CONFLICT(type) DO UPDATE SET count=count+excluded.count`, t, c, b2i(transcrip
 	return n, tx.Commit()
 }
 
+// b2i converts b to 1 or 0 for storage in an integer column.
 func b2i(b bool) int {
 	if b {
 		return 1
@@ -452,6 +464,9 @@ type pendingWrite struct {
 	input json.RawMessage
 }
 
+// turn returns a Turn for ev with the given block index and kind. Its id is
+// the event uuid and index, or a hash of the session and file offset when the
+// event has no uuid. Text and tool fields are left for the caller to fill in.
 func (x *extractor) turn(ev transcript.Event, idx int, kind string) store.Turn {
 	id := ev.UUID
 	if id == "" {
@@ -497,6 +512,11 @@ func head(s string) string {
 	return s
 }
 
+// extract turns one transcript event into zero or more store turns and
+// advances the sequence number. User text becomes user, command or fixup
+// turns, with injected and system text dropped; assistant blocks become text
+// and tool-use turns; hook messages and edited-file attachments become hook
+// and fixup turns. Tool results are handled by toolResult.
 func (x *extractor) extract(ev transcript.Event) []store.Turn {
 	x.seq++
 	var out []store.Turn
@@ -586,6 +606,10 @@ func (x *extractor) extract(ev transcript.Event) []store.Turn {
 	return out
 }
 
+// toolResult turns a tool_result block into a turn. A user rejection keeps
+// what the user said, an interrupt keeps no text, hook output and errors are
+// kept, and successful output is dropped. It may also return a fixup turn if a
+// tracked write was changed outside Claude.
 func (x *extractor) toolResult(ev transcript.Event, i int, b transcript.Block) []store.Turn {
 	text := b.Text
 	t := x.turn(ev, i, KindToolResult)
@@ -623,6 +647,7 @@ func (x *extractor) toolResult(ev transcript.Event, i int, b transcript.Block) [
 	return out
 }
 
+// isWriteTool reports whether name is a tool that edits a file.
 func isWriteTool(name string) bool {
 	return name == "Write" || name == "Edit" || name == "MultiEdit"
 }
@@ -772,17 +797,21 @@ func BashMayWrite(cmd, path string) bool {
 	return targets == 0
 }
 
-func (f *fileState) apply(old, new string, all bool) {
+// apply records a replacement of old with repl. If the file's content is known
+// it is edited in place, replacing every occurrence when all is true.
+// Otherwise repl is remembered as expected text if it is at least 16
+// characters.
+func (f *fileState) apply(old, repl string, all bool) {
 	if f.known {
 		n := 1
 		if all {
 			n = -1
 		}
-		f.content = strings.Replace(f.content, old, new, n)
+		f.content = strings.Replace(f.content, old, repl, n)
 		return
 	}
-	if len(strings.TrimSpace(new)) >= 16 {
-		f.expected = append(f.expected, new)
+	if len(strings.TrimSpace(repl)) >= 16 {
+		f.expected = append(f.expected, repl)
 	}
 }
 
@@ -836,8 +865,12 @@ type repoResolver struct {
 	cache map[string]string
 }
 
+// newRepoResolver returns an empty resolver.
 func newRepoResolver() *repoResolver { return &repoResolver{cache: map[string]string{}} }
 
+// resolve returns the repository root for cwd: the nearest ancestor containing
+// .git, or cwd itself if there is none. Results are cached, and it is safe for
+// concurrent use.
 func (r *repoResolver) resolve(cwd string) string {
 	r.mu.Lock()
 	defer r.mu.Unlock()

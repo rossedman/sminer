@@ -25,6 +25,10 @@ func Execute() int {
 	return Run(ctx, os.Args[1:], Options{})
 }
 
+// Command returns sminer's command tree for documentation generators. It is
+// not connected to any streams and is not meant to be executed.
+func Command() *cobra.Command { return newRootCmd(newApp(Options{})) }
+
 // Run executes one invocation. It never calls os.Exit, so tests can drive it.
 func Run(ctx context.Context, argv []string, opts Options) (code int) {
 	a := newApp(opts)
@@ -105,6 +109,10 @@ const linksHelp = `
 Docs: https://github.com/rossedman/sminer#readme
 Report a bug: ` + issuesURL + "\n"
 
+// newRootCmd builds the sminer root command with its global flags and every
+// subcommand. Commands are listed in workflow order, and the persistent pre-
+// run warns about deprecated commands and loads the config unless the command
+// opts out.
 func newRootCmd(a *app) *cobra.Command {
 	cobra.EnableCommandSorting = false // list commands in workflow order
 	root := &cobra.Command{
@@ -143,9 +151,13 @@ func newRootCmd(a *app) *cobra.Command {
 	pf.Bool("offline", false, "never call the network; heuristics and local clustering only")
 	bindFlag(pf, "offline", "offline")
 	pf.BoolVar(&a.g.json, "json", false, "print machine-readable JSON on stdout")
+	bindFlag(pf, "json", "json")
 	pf.BoolVarP(&a.g.quiet, "quiet", "q", false, "print nothing on stderr except errors")
+	bindFlag(pf, "quiet", "quiet")
 	pf.BoolVarP(&a.g.verbose, "verbose", "v", false, "print detail on stderr")
+	bindFlag(pf, "verbose", "verbose")
 	pf.BoolVar(&a.g.noColor, "no-color", false, "disable color (also NO_COLOR=1)")
+	bindFlag(pf, "no-color", "no_color")
 	root.MarkFlagsMutuallyExclusive("quiet", "verbose")
 
 	root.AddGroup(

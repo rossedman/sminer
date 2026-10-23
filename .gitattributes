@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+*.png binary
+*.woff2 binary
+
+# Collapse generated code in GitHub diffs.
+*.gen.go linguist-generated=true

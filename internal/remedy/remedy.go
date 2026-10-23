@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/rossedman/sminer/internal/classify"
 	"github.com/rossedman/sminer/internal/cluster"
@@ -67,6 +68,8 @@ func DecodeProposal(s string) Proposal {
 	return p
 }
 
+// encode returns p as a JSON string. The error from Marshal is ignored because
+// Proposal holds only plain fields.
 func (p Proposal) encode() string {
 	b, _ := json.Marshal(p)
 	return string(b)
@@ -140,6 +143,7 @@ func Run(ctx context.Context, st *store.Store, ids []string, opt Options) (Stats
 	return stats, nil
 }
 
+// reposOf returns the distinct non-empty repos of sigs, sorted.
 func reposOf(sigs []store.Signal) []string {
 	seen := map[string]bool{}
 	var out []string
@@ -204,6 +208,10 @@ func Route(f store.Finding, sigs []store.Signal) (string, Proposal) {
 	return ClaudeMD, Proposal{Rule: asRule(rep)}
 }
 
+// representativeText returns the text that best stands for a finding: the most
+// common classifier rule, with ties going to the alphabetically first,
+// otherwise the text of the signal closest to the finding's centroid. It
+// returns an empty string when there are no signals.
 func representativeText(f store.Finding, sigs []store.Signal) string {
 	// Prefer the most common classifier rule, else the excerpt closest to
 	// the cluster centroid.
@@ -232,6 +240,8 @@ func representativeText(f store.Finding, sigs []store.Signal) string {
 	return cluster.SignalText(cluster.Representative(sigs, vecs, f.Centroid))
 }
 
+// majorityHint returns the remedy hint that appears most often on sigs, with
+// ties going to the alphabetically first, or an empty string if none has one.
 func majorityHint(sigs []store.Signal) string {
 	counts := map[string]int{}
 	for _, s := range sigs {
@@ -295,7 +305,8 @@ func ExtractHook(text string) (Proposal, bool) {
 			}
 		}
 		for _, m := range backtick.FindAllStringSubmatch(text, -1) {
-			if f := strings.Fields(m[1]); len(f) > 0 && knownCLIs[f[0]] {
+			// A pattern must be valid UTF-8 to compile.
+			if f := strings.Fields(m[1]); len(f) > 0 && knownCLIs[f[0]] && utf8.ValidString(m[1]) {
 				return Proposal{Rule: rule, Matcher: "Bash", Field: "command", Pattern: regexp.QuoteMeta(m[1])}, true
 			}
 		}
@@ -303,6 +314,9 @@ func ExtractHook(text string) (Proposal, bool) {
 	return Proposal{}, false
 }
 
+// globToRegex converts the file glob g to a regular expression. A star matches
+// anything but a slash or quote, and a glob without a slash matches only a
+// final path element. The expression is anchored at the end.
 func globToRegex(g string) string {
 	parts := strings.Split(g, "*")
 	for i := range parts {
@@ -319,6 +333,9 @@ var stepSplit = regexp.MustCompile(`(?i)[.;]\s+|[.;]$|,\s*(and\s+)?then\s+|,\s+|
 
 var stepRe = regexp.MustCompile(`(?im)(^\s*(\d+[.)]|-|\*)\s+\S|\b(first|then|before|after|next|finally|step)\b)`)
 
+// looksProcedural reports whether text reads like a multi-step procedure:
+// three or more steps, or two or more when at least half the signals are
+// repeated instructions and the text is long.
 func looksProcedural(text string, sigs []store.Signal) bool {
 	steps := len(stepRe.FindAllString(text, -1))
 	repeated := 0
@@ -330,6 +347,9 @@ func looksProcedural(text string, sigs []store.Signal) bool {
 	return steps >= 3 || (repeated*2 >= len(sigs) && len(text) > 80 && steps >= 2)
 }
 
+// skillFrom builds a skill proposal from text. Steps come from its lines with
+// list markers removed or, if that gives one step or fewer, from splitting on
+// step separators. The skill name and description are derived from the text.
 func skillFrom(text string, sigs []store.Signal) Proposal {
 	var steps []string
 	for _, l := range strings.Split(text, "\n") {
@@ -396,6 +416,10 @@ func asRule(text string) string {
 	return textutil.Truncate(t, 240)
 }
 
+// dedupe checks a proposed remedy against what already exists. It returns
+// ignore for a one-off in a single session, or when an existing hook or skill
+// covers it, together with where. An existing CLAUDE.md line leads to
+// escalation. Otherwise the remedy is returned unchanged.
 func dedupe(remedy string, p Proposal, f store.Finding, sigs []store.Signal, repos []string, ex *Existing) (string, Proposal, string) {
 	sess := map[string]bool{}
 	for _, s := range sigs {
@@ -463,6 +487,9 @@ func escalate(p Proposal, f store.Finding, sigs []store.Signal, repos []string, 
 	return Ignore, p, c.String()
 }
 
+// target returns the file the remedy would write: CLAUDE.md in the single repo
+// or the global one, a hook script, or a skill's SKILL.md. Other remedies have
+// no target and return an empty string.
 func target(remedy string, p Proposal, repos []string, cfg config.Config) string {
 	switch remedy {
 	case ClaudeMD:

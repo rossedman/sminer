@@ -67,6 +67,8 @@ type reviewModel struct {
 	err                           error // fatal: loading failed
 }
 
+// newReviewModel returns a model that starts on the filter named by status and
+// loads its findings. Any load error is left in the model's err field.
 func newReviewModel(th ui.Theme, svc reviewer, dir, status string) *reviewModel {
 	m := &reviewModel{th: th, svc: svc, dir: dir, marked: map[string]bool{}, cache: map[string]report.Finding{},
 		applies: map[string]string{},
@@ -85,6 +87,7 @@ func newReviewModel(th ui.Theme, svc reviewer, dir, status string) *reviewModel 
 	return m
 }
 
+// Init implements tea.Model. The review screen has no startup command.
 func (m *reviewModel) Init() tea.Cmd { return nil }
 
 // reload fetches the list for the current filter, keeping the cursor on
@@ -113,6 +116,7 @@ func (m *reviewModel) reload() {
 	m.refresh()
 }
 
+// listed reports whether the finding with the given id is in the current list.
 func (m *reviewModel) listed(id string) bool {
 	for _, f := range m.items {
 		if f.ID == id {
@@ -122,6 +126,7 @@ func (m *reviewModel) listed(id string) bool {
 	return false
 }
 
+// current returns the selected finding, or false if the list is empty.
 func (m *reviewModel) current() (report.Finding, bool) {
 	if m.cur < 0 || m.cur >= len(m.items) {
 		return report.Finding{}, false
@@ -148,9 +153,15 @@ func (m *reviewModel) targets() []string {
 
 // Pane geometry.
 func (m *reviewModel) listWidth() int { return max(30, min(52, m.width*2/5)) }
+
+// detailWidth returns the width of the right-hand detail pane, at least 30
+// columns.
 func (m *reviewModel) detailWidth() int {
 	return max(30, m.width-m.listWidth()-3)
 }
+
+// bodyHeight returns the number of rows available to the list and detail
+// panes, at least 5.
 func (m *reviewModel) bodyHeight() int { return max(5, m.height-5) }
 
 // refresh re-renders the right pane for the cursor and mode.
@@ -199,10 +210,15 @@ func (m *reviewModel) refresh() {
 	m.vp.GotoTop()
 }
 
+// say sets the status-line note to the formatted message, shown as an error
+// when ok is false.
 func (m *reviewModel) say(ok bool, format string, args ...any) {
 	m.note, m.noteErr = fmt.Sprintf(format, args...), !ok
 }
 
+// Update implements tea.Model. It tracks window size, quits on ctrl+c and
+// marks the run interrupted, and sends other keys to the handler for the
+// current mode.
 func (m *reviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -226,6 +242,9 @@ func (m *reviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// updateDismiss handles keys while the dismiss reason is being typed. Esc
+// cancels, enter dismisses every target with the typed reason and clears the
+// marks, and other keys edit the reason.
 func (m *reviewModel) updateDismiss(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
@@ -255,6 +274,9 @@ func (m *reviewModel) updateDismiss(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// updateBrowse handles keys in the browse and patch-preview modes: moving,
+// scrolling, marking, previewing, accepting, dismissing, reopening, switching
+// the status filter, and quitting.
 func (m *reviewModel) updateBrowse(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "esc":
@@ -331,6 +353,9 @@ func (m *reviewModel) updateBrowse(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// move shifts the selection by d rows, clamped to the list, and refreshes the
+// detail pane. While previewing a patch for marked findings the preview is
+// kept.
 func (m *reviewModel) move(d int) {
 	if len(m.items) == 0 {
 		return
@@ -347,6 +372,9 @@ func (m *reviewModel) move(d int) {
 	}
 }
 
+// accept writes patches for the target findings and records them as adopted.
+// Paths and apply commands are kept for the exit summary, and the marks are
+// cleared. On error it only sets the status note.
 func (m *reviewModel) accept() {
 	ids := m.targets()
 	if len(ids) == 0 {
@@ -391,6 +419,7 @@ func (m *reviewModel) afterChange(ids []string) {
 	m.refresh()
 }
 
+// contains reports whether s is in ss.
 func contains(ss []string, s string) bool {
 	for _, x := range ss {
 		if x == s {
@@ -400,12 +429,15 @@ func contains(ss []string, s string) bool {
 	return false
 }
 
+// View implements tea.Model, rendering the screen on the alternate screen.
 func (m *reviewModel) View() tea.View {
 	v := tea.NewView(m.render())
 	v.AltScreen = true
 	return v
 }
 
+// render draws the help screen in help mode, otherwise the header, the list
+// and detail panes side by side, and the footer.
 func (m *reviewModel) render() string {
 	th := m.th
 	if m.mode == modeHelp {
@@ -418,6 +450,8 @@ func (m *reviewModel) render() string {
 	return lipgloss.JoinVertical(lipgloss.Left, header, "", body, "", m.renderFooter())
 }
 
+// renderHeader draws the title, the status tabs with the active one
+// underlined, the number of findings and, if any are marked, how many.
 func (m *reviewModel) renderHeader() string {
 	th := m.th
 	pill := lipgloss.NewStyle().Bold(true).Padding(0, 1).Foreground(th.P.Ink).Background(th.P.Ore).Render("sminer review")
@@ -436,6 +470,9 @@ func (m *reviewModel) renderHeader() string {
 	return pill + "  " + strings.Join(tabs, th.Faint.Render("  ")) + "    " + right
 }
 
+// renderList draws the visible window of the findings list, scrolling so the
+// selection stays in view. Each row shows the mark or cursor, status or remedy
+// glyph, id, score and a truncated title.
 func (m *reviewModel) renderList() string {
 	th := m.th
 	w, h := m.listWidth(), m.bodyHeight()
@@ -481,6 +518,9 @@ func (m *reviewModel) renderList() string {
 	return lipgloss.NewStyle().Width(w).Height(h).MaxHeight(h).Render(strings.Join(rows, "\n"))
 }
 
+// renderFooter draws the status line and the key legend. The status line shows
+// the dismiss prompt, the latest note, a patch-preview notice or a hint, in
+// that order of priority. Both lines are truncated to the width.
 func (m *reviewModel) renderFooter() string {
 	th := m.th
 	var status string
@@ -524,6 +564,7 @@ func (m *reviewModel) hint() string {
 	return "Press p to see the patch, a to accept it, d to dismiss."
 }
 
+// renderHelp draws the screen listing every key.
 func (m *reviewModel) renderHelp() string {
 	th := m.th
 	rows := [][2]string{
@@ -541,7 +582,7 @@ func (m *reviewModel) renderHelp() string {
 	var b strings.Builder
 	b.WriteString(th.Heading.Render("sminer review") + "\n\n")
 	for _, r := range rows {
-		b.WriteString(fmt.Sprintf("  %s  %s\n", th.Code.Render(fmt.Sprintf("%-16s", r[0])), th.Text.Render(r[1])))
+		fmt.Fprintf(&b, "  %s  %s\n", th.Code.Render(fmt.Sprintf("%-16s", r[0])), th.Text.Render(r[1]))
 	}
 	b.WriteString("\n" + th.Muted.Render("CLAUDE.md lines marked together for the same file share one patch.") + "\n")
 	b.WriteString(th.Muted.Render("sminer never applies a patch: apply it yourself with the command it shows.") + "\n\n")
