@@ -2,4 +2,4 @@
 # `pip install -r docs/requirements.txt` locally.
 # MkDocs 2.0 drops theme overrides, so stay on 1.x.
 mkdocs>=1.6.1,<2
-mkdocs-material>=9.7.7,<10
+mkdocs-material>=9.8.0,<10
